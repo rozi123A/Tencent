@@ -97,7 +97,7 @@ export function useTRTC() {
       playBeep();
     });
 
-    trtc.on(TRTC.EVENT.REMOTE_USER_LEAVE, ({ userId }: any) => {
+    trtc.on(TRTC.EVENT.REMOTE_USER_EXIT, ({ userId }: any) => {
       useAppStore.getState().removeParticipant(userId);
       useAppStore.getState().addSuccessLog(`🔴 ${userId} غادر الغرفة`);
     });
