@@ -33,9 +33,13 @@ if (!SDK_APP_ID || !SDK_SECRET_KEY) {
   process.exit(1);
 }
 
+const path = require('path');
 const app = express();
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json());
+
+// Serve static files from the quick-demo-js directory
+app.use(express.static(path.join(__dirname, '../quick-demo-js')));
 
 function isValidUserId(userId) {
   return typeof userId === 'string' && userId.length > 0 && userId.length <= 64 && /^[\w-]+$/.test(userId);

@@ -10,7 +10,9 @@ if (window.location.hostname.includes('onrender.com')) {
     defaultServerUrl = 'https://tencent-usersig-server.onrender.com';
 }
 
-document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || defaultServerUrl;
+// Use relative URL if running on the same server, otherwise fallback to default
+const currentOrigin = window.location.origin;
+document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || currentOrigin;
 document.getElementById('userId').value = getQueryString('userId') || 'user_' + Math.floor(Math.random() * 1000000);
 document.getElementById('strRoomId').value = getQueryString('strRoomId') || 'room_' + Math.floor(Math.random() * 1000);
 const state = { url:window.location.href.split("?")[0] };
