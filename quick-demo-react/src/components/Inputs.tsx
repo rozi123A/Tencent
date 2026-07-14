@@ -10,7 +10,7 @@ interface InputsProps {
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
-  const { setUserId, setStrRoomId, setSdkAppId } = useAppStore();
+  const { setUserId, setStrRoomId } = useAppStore();
 
   // Load saved name from localStorage — empty string forces user to enter name
   const [name, setName] = useState<string>(() => {
@@ -29,23 +29,16 @@ export default function Inputs({ onJoin }: InputsProps) {
 
     setError('');
 
-    // Security fix: SDKSecretKey must never be shipped to the browser (it was
-    // previously read from a VITE_ env var, which Vite inlines into the public
-    // client bundle — anyone could extract it from devtools). Only the
-    // non-secret SDKAppID is needed on the client; userSig is fetched from the
-    // backend signing server (see /server) which is the only place holding the key.
-    // Default to your SDKAppID if env var is missing
-    const appId = import.meta.env.VITE_SDK_APP_ID || '20044885';
-
-    if (!appId) {
-      setError('⚠️ SDKAppID مفقود، يرجى التحقق من الإعدادات');
-      return;
-    }
+    // Security fix: SDKSecretKey must never be shipped to the browser. The
+    // SDKAppID is also no longer guessed/hardcoded on the client — it is read
+    // from the backend signing server's response inside enterRoom(), which is
+    // the only place that can guarantee it matches the userSig it just signed.
+    // A mismatched client-side SDKAppID would make TRTC silently reject the
+    // join, which looked like "it enters and immediately bounces back".
 
     // Save name permanently in browser
     try { localStorage.setItem(NAME_KEY, trimName); } catch {}
 
-    setSdkAppId(appId);
     setUserId(trimName);
     setStrRoomId(trimRoom);
 

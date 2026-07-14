@@ -155,28 +155,34 @@ export function useTRTC() {
 
   // Enter Room
   const enterRoom = useCallback(async () => {
-    const { sdkAppId, userId, strRoomId } = useAppStore.getState();
-    const numericSdkAppId = Number(sdkAppId);
-    if (!numericSdkAppId || !userId || !strRoomId) {
-      store.addFailedLog('بيانات الاتصال غير مكتملة (SDKAppId)');
+    const { userId, strRoomId } = useAppStore.getState();
+    if (!userId || !strRoomId) {
+      store.addFailedLog('بيانات الاتصال غير مكتملة (الاسم أو رقم الغرفة)');
       return;
     }
     setRoomStatus('entering');
     bindEvents();
     try {
-      const { userSig } = await fetchUserSig({ userId });
-      await trtcRef.current.enterRoom({ strRoomId, sdkAppId: numericSdkAppId, userId, userSig });
-      reportSuccessEvent('enterRoom', numericSdkAppId);
+      // The backend is the single source of truth for sdkAppId: it must be the
+      // exact same SDKAppID used to sign userSig, or TRTC silently rejects the
+      // join. Never use a separately client-guessed/hardcoded sdkAppId here.
+      const { sdkAppId: signedSdkAppId, userSig } = await fetchUserSig({ userId });
+      store.setSdkAppId(String(signedSdkAppId));
+      await trtcRef.current.enterRoom({ strRoomId, sdkAppId: signedSdkAppId, userId, userSig });
+      reportSuccessEvent('enterRoom', signedSdkAppId);
       store.addSuccessLog(`[${userId}] دخل الغرفة`);
       store.addParticipant(userId);
       setRoomStatus('entered');
-      setShareLink(await createShareLink(numericSdkAppId, strRoomId));
+      setShareLink(await createShareLink(signedSdkAppId, strRoomId));
     } catch (error: any) {
       console.error('enterRoom error', error);
       reportFailedEvent({ name: 'enterRoom', error, roomId: strRoomId });
       store.addFailedLog(`[${userId}] فشل الدخول: ${error.message || error}`);
       setRoomStatus('idle');
       unbindEvents();
+      // Re-throw so the caller (lobby screen) can show the real error and stop
+      // spinning instead of silently bouncing back with no explanation.
+      throw error;
     }
   }, [store, bindEvents, unbindEvents, createShareLink]);
 
