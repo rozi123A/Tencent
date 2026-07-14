@@ -15,7 +15,7 @@ services:
       - key: ALLOWED_ORIGIN
         value: "*" # tighten to your static site's URL after first deploy
       - key: NODE_VERSION
-        value: "20.18.1"
+        value: "22.12.0"
 
   # Frontend static site — no secrets here anymore.
   - type: web
@@ -30,4 +30,4 @@ services:
       - key: VITE_USER_SIG_SERVER_URL
         sync: false # after the first deploy, set this to the tencent-usersig-server URL Render assigns, then redeploy
       - key: NODE_VERSION
-        value: "20.18.1"
+        value: "22.12.0"

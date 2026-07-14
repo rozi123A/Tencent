@@ -5,7 +5,7 @@
   "description": "Minimal backend that generates TRTC userSig server-side so SDKSecretKey never reaches the browser.",
   "main": "index.js",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node index.js"
