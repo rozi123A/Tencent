@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store';
-import { generateRandomUserId, generateRandomRoomId } from '@/utils/utils';
+import { generateRandomRoomId } from '@/utils/utils';
 import './Inputs.css';
+
+const NAME_KEY = 'vc_saved_name';
 
 interface InputsProps {
   onJoin: () => Promise<void>;
@@ -10,7 +12,10 @@ interface InputsProps {
 export default function Inputs({ onJoin }: InputsProps) {
   const { setUserId, setStrRoomId, setSdkAppId, setSdkSecretKey } = useAppStore();
 
-  const [name, setName] = useState(() => generateRandomUserId());
+  // Load saved name from localStorage — empty string forces user to enter name
+  const [name, setName] = useState<string>(() => {
+    try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
+  });
   const [room, setRoom] = useState(() => generateRandomRoomId());
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +29,6 @@ export default function Inputs({ onJoin }: InputsProps) {
 
     setError('');
 
-    // Set ALL values in store synchronously before calling enterRoom
     const appId = import.meta.env.VITE_SDK_APP_ID || '';
     const secretKey = import.meta.env.VITE_SDK_SECRET_KEY || '';
 
@@ -32,6 +36,9 @@ export default function Inputs({ onJoin }: InputsProps) {
       setError('⚠️ VITE_SDK_APP_ID أو VITE_SDK_SECRET_KEY غير مضبوطة في Render Environment Variables');
       return;
     }
+
+    // Save name permanently in browser
+    try { localStorage.setItem(NAME_KEY, trimName); } catch {}
 
     setSdkAppId(appId);
     setSdkSecretKey(secretKey);
@@ -47,14 +54,26 @@ export default function Inputs({ onJoin }: InputsProps) {
     }
   };
 
+  const savedName = (() => { try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; } })();
+  const isReturning = !!savedName;
+
   return (
     <div className="lobby-card">
       <div className="lobby-logo">📹</div>
       <h1 className="lobby-title">Video Call</h1>
-      <p className="lobby-subtitle">أدخل اسمك ورقم الغرفة للانضمام</p>
+      <p className="lobby-subtitle">
+        {isReturning
+          ? `👋 أهلاً بعودتك، ${savedName}!`
+          : 'أدخل اسمك ورقم الغرفة للانضمام'}
+      </p>
 
       <div className="lobby-field">
-        <label className="lobby-label">👤 اسمك</label>
+        <label className="lobby-label">
+          👤 اسمك
+          {isReturning && (
+            <span className="lobby-saved-badge">✅ محفوظ</span>
+          )}
+        </label>
         <input
           className="lobby-input"
           type="text"
@@ -63,6 +82,7 @@ export default function Inputs({ onJoin }: InputsProps) {
           onChange={(e) => setName(e.target.value)}
           maxLength={30}
           disabled={joining}
+          autoFocus={!isReturning}
         />
       </div>
 
@@ -77,6 +97,7 @@ export default function Inputs({ onJoin }: InputsProps) {
             onChange={(e) => setRoom(e.target.value)}
             maxLength={20}
             disabled={joining}
+            autoFocus={isReturning}
           />
           <button
             className="lobby-btn-new"
