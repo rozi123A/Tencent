@@ -101,16 +101,21 @@ function initParams() {
 // Fetch a freshly-signed userSig from the backend signing server instead of
 // generating it client-side with the SecretKey.
 async function fetchUserSig(uid) {
-	const resp = await fetch(`${userSigServerUrl}/api/user-sig`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ userId: uid }),
-	});
-	if (!resp.ok) {
-		const body = await resp.json().catch(() => ({}));
-		throw new Error(body.error || `userSig server responded with ${resp.status}`);
-	}
-	return resp.json();
+    const targetUrl = `${userSigServerUrl}/api/user-sig`;
+    try {
+        const resp = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: uid }),
+        });
+        if (!resp.ok) {
+            const body = await resp.json().catch(() => ({}));
+            throw new Error(body.error || `Server responded with ${resp.status} at ${targetUrl}`);
+        }
+        return await resp.json();
+    } catch (err) {
+        throw new Error(`Failed to fetch from ${targetUrl}: ${err.message}`);
+    }
 }
 
 async function enterRoom(event) {
