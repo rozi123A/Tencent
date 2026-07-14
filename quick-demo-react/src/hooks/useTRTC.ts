@@ -93,11 +93,23 @@ export function useTRTC() {
       setTimeout(() => { trtc.startRemoteVideo({ userId, streamType, view: elementId }); }, 0);
     });
 
-    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }: any) => {
+    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, async ({ userId, streamType }: any) => {
       const elementId = `${userId}_${streamType}`;
-      const s = useAppStore.getState();
-      s.removeRemoteUser(elementId);
-      trtc.stopRemoteVideo({ userId, streamType });
+      // Order matters: the SDK injects its own <video> element directly into
+      // the React-rendered container div (bypassing React). If we remove the
+      // container from React state first, React detaches/rebuilds that DOM
+      // subtree; when the SDK's own cleanup then tries to remove its <video>
+      // node from a container that React already tore down, the browser
+      // throws "removeChild: node is not a child of this node" and crashes
+      // the app. Let the SDK finish detaching from the still-mounted
+      // container first, then remove it from React state.
+      try {
+        await trtc.stopRemoteVideo({ userId, streamType });
+      } catch (e) {
+        console.error('stopRemoteVideo failed', e);
+      } finally {
+        useAppStore.getState().removeRemoteUser(elementId);
+      }
     });
 
     // Track participants enter/leave
