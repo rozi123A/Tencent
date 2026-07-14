@@ -73,12 +73,6 @@ export default function Inputs() {
           />
         </div>
       </div>
-      <div className="security-warning">
-        <span>{t('security.warning')} </span>
-        <a href={securityDocUrl} target="_blank" rel="noopener noreferrer">
-          {t('security.viewDoc')}
-        </a>
-      </div>
     </div>
   );
 }
