@@ -17,7 +17,6 @@ export interface RemoteUser {
 
 export interface ClientOptions {
   sdkAppId: number;
-  sdkSecretKey: string;
   userId: string;
   strRoomId: string;
 }

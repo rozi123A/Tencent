@@ -181,10 +181,15 @@
             <span class='input-group-text'>SDKAppID</span>
             <input id='sdkAppId' type='number' class='form-control' placeholder='SDKAppID' value=''>
           </div>
-          <div class='mb-3 input-group input-group-sm'>
-            <span class='input-group-text'>SDKSecretKey</span>
-            <input id='sdkSecretKey' type='text' class='form-control' placeholder='SDKSecretKey' value=''>
-          </div>
+        </div>
+        <!--
+          Security fix: SDKSecretKey is no longer entered/stored in the browser.
+          userSig is now fetched from the backend signing server (see /server),
+          which is the only place that ever holds the SecretKey.
+        -->
+        <div class='mb-3 input-group input-group-sm'>
+          <span class='input-group-text'>UserSig Server URL</span>
+          <input id='userSigServerUrl' type='text' class='form-control' placeholder='http://localhost:3001' value=''>
         </div>
         <div class='input-list'>
           <div class='mb-3 input-group input-group-sm'>
@@ -345,8 +350,8 @@
   <script src='https://web.sdk.qcloud.com/trtc/webrtc/v5/dist/trtc.js'></script>
   <script src='https://cdn-go.cn/aegis/aegis-sdk/latest/aegis.min.js'></script>
   <script src='js/libs/clipboard.min.js'></script>
-  <script src='js/libs/lib-generate-test-usersig.min.js'></script>
-  <script src='js/libs/generateTestUserSig.js'></script>
+  <!-- Security fix: client-side signing (SecretKey in the browser) removed.
+       userSig is now fetched from the backend signing server in /server. -->
   <script src='js/tooltip.js'></script>
   <script src='js/common.js'></script>
   <script src='js/index.js'></script>

@@ -2,7 +2,7 @@
 // -------document events--------
 
 document.getElementById('sdkAppId').value = getQueryString('sdkAppId') || localStorage.getItem('trtc_sdkAppId') || '';
-document.getElementById('sdkSecretKey').value = getQueryString('sdkSecretKey') || localStorage.getItem('trtc_sdkSecretKey') || '';
+document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || 'http://localhost:3001';
 document.getElementById('userId').value = getQueryString('userId') || 'user_' + Math.floor(Math.random() * 1000000);
 document.getElementById('strRoomId').value = getQueryString('strRoomId') || 'room_' + Math.floor(Math.random() * 1000);
 const state = { url:window.location.href.split("?")[0] };
@@ -12,7 +12,7 @@ window.isIframe = window.self !== window.top;
 
 // --------global variables----------
 let sdkAppId;
-let sdkSecretKey;
+let userSigServerUrl;
 let strRoomId;
 let trtc = TRTC.create()
 
@@ -57,7 +57,7 @@ TRTC.isSupported().then((checkResult) => {
 
 function initParams() {
 	sdkAppId = parseInt(document.getElementById('sdkAppId').value);
-	sdkSecretKey = document.getElementById('sdkSecretKey').value;
+	userSigServerUrl = document.getElementById('userSigServerUrl').value.replace(/\/$/, '');
 	strRoomId = document.getElementById('strRoomId').value;
 	userId = document.getElementById('userId').value;
 	shareUserId = 'share_' + userId;
@@ -71,22 +71,38 @@ function initParams() {
 		ext3: window.isIframe ? 'iframe' : '',
 	});
 
-	if (!(sdkAppId && sdkSecretKey && strRoomId && userId)) {
+	if (!(sdkAppId && userSigServerUrl && strRoomId && userId)) {
 		if (window.lang_ === 'zh-cn') {
-			alert('请检查参数 SDKAppId, SDKSecretKey, userId, strRoomId 是否输入正确！');
+			alert('请检查参数 SDKAppId, UserSig Server URL, userId, strRoomId 是否输入正确！');
 		} else if (window.lang_ === 'en') {
-			alert('Please fill in the correct SDKAppId, SDKSecretKey, userId, strRoomId!');
+			alert('Please fill in the correct SDKAppId, UserSig Server URL, userId, strRoomId!');
 		}
 
-		throw new Error('Please fill in the correct SDKAppId, SDKSecretKey, userId, strRoomId');
+		throw new Error('Please fill in the correct SDKAppId, UserSig Server URL, userId, strRoomId');
 	}
 
-	// Cache sdkAppId and sdkSecretKey to localStorage
+	// Cache sdkAppId and the signing server URL only. The SecretKey never
+	// touches the browser or localStorage anymore -- see /server.
 	try {
 		localStorage.setItem('trtc_sdkAppId', String(sdkAppId));
-		localStorage.setItem('trtc_sdkSecretKey', sdkSecretKey);
+		localStorage.setItem('trtc_userSigServerUrl', userSigServerUrl);
 	} catch (e) {}
 
+}
+
+// Fetch a freshly-signed userSig from the backend signing server instead of
+// generating it client-side with the SecretKey.
+async function fetchUserSig(uid) {
+	const resp = await fetch(`${userSigServerUrl}/api/user-sig`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ userId: uid }),
+	});
+	if (!resp.ok) {
+		const body = await resp.json().catch(() => ({}));
+		throw new Error(body.error || `userSig server responded with ${resp.status}`);
+	}
+	return resp.json();
 }
 
 async function enterRoom() {
@@ -94,7 +110,7 @@ async function enterRoom() {
 	setButtonLoading('enter', true);
 	try {
 		initParams()
-		const { userSig } = genTestUserSig({ sdkAppId, userId, sdkSecretKey });
+		const { userSig } = await fetchUserSig(userId);
 		await trtc.enterRoom({ strRoomId, sdkAppId, userId, userSig })
 		reportSuccessEvent('enterRoom', sdkAppId)
 		refreshLink()
@@ -388,23 +404,23 @@ cameraSelect.onchange = async (e) => {
 	}
 }
 
-function refreshLink() {
+async function refreshLink() {
 	if (trtc) {
-		inviteUrl.value = createShareLink();
+		inviteUrl.value = await createShareLink();
 	}
 }
 
-function createShareLink() {
+async function createShareLink() {
 	const userId = String(Math.floor(Math.random() * 1000000));
-	const { userSig } = genTestUserSig({ sdkAppId, userId, sdkSecretKey });
+	const { userSig } = await fetchUserSig(userId);
 	const { origin } = window.location;
 	const pathname = window.location.pathname.replace('index.html', 'invite/invite.html');
 	return `${origin}${pathname}?userSig=${userSig}&&SDKAppId=${sdkAppId}&&userId=${userId}&&strRoomId=${strRoomId}`;
 }
 
 let clipboard = new ClipboardJS('#inviteBtn');
-clipboard.on('success', (e) => {
-	refreshLink();
+clipboard.on('success', async (e) => {
+	await refreshLink();
 	showTooltip(e.trigger, 'Copied!')
 });
 

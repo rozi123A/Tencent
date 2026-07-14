@@ -10,7 +10,7 @@ interface InputsProps {
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
-  const { setUserId, setStrRoomId, setSdkAppId, setSdkSecretKey } = useAppStore();
+  const { setUserId, setStrRoomId, setSdkAppId } = useAppStore();
 
   // Load saved name from localStorage — empty string forces user to enter name
   const [name, setName] = useState<string>(() => {
@@ -29,11 +29,15 @@ export default function Inputs({ onJoin }: InputsProps) {
 
     setError('');
 
+    // Security fix: SDKSecretKey must never be shipped to the browser (it was
+    // previously read from a VITE_ env var, which Vite inlines into the public
+    // client bundle — anyone could extract it from devtools). Only the
+    // non-secret SDKAppID is needed on the client; userSig is fetched from the
+    // backend signing server (see /server) which is the only place holding the key.
     const appId = import.meta.env.VITE_SDK_APP_ID || '';
-    const secretKey = import.meta.env.VITE_SDK_SECRET_KEY || '';
 
-    if (!appId || !secretKey) {
-      setError('⚠️ VITE_SDK_APP_ID أو VITE_SDK_SECRET_KEY غير مضبوطة في Render Environment Variables');
+    if (!appId) {
+      setError('⚠️ VITE_SDK_APP_ID غير مضبوطة في Environment Variables');
       return;
     }
 
@@ -41,7 +45,6 @@ export default function Inputs({ onJoin }: InputsProps) {
     try { localStorage.setItem(NAME_KEY, trimName); } catch {}
 
     setSdkAppId(appId);
-    setSdkSecretKey(secretKey);
     setUserId(trimName);
     setStrRoomId(trimRoom);
 

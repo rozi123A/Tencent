@@ -11,7 +11,6 @@ export interface ChatMessage {
 
 interface AppState {
   sdkAppId: string;
-  sdkSecretKey: string;
   userId: string;
   strRoomId: string;
   cameras: DeviceItem[];
@@ -29,7 +28,6 @@ interface AppState {
   roomLocked: boolean;
   // Setters
   setSdkAppId: (val: string) => void;
-  setSdkSecretKey: (val: string) => void;
   setUserId: (val: string) => void;
   setStrRoomId: (val: string) => void;
   setCameras: (devices: DeviceItem[]) => void;
@@ -61,7 +59,6 @@ const savedTheme = (() => {
 
 export const useAppStore = create<AppState>((set) => ({
   sdkAppId: '',
-  sdkSecretKey: '',
   userId: '',
   strRoomId: '',
   cameras: [],
@@ -78,7 +75,6 @@ export const useAppStore = create<AppState>((set) => ({
   roomLocked: false,
 
   setSdkAppId: (val) => { try { localStorage.setItem('trtc_sdkAppId', val); } catch {} set({ sdkAppId: val }); },
-  setSdkSecretKey: (val) => { try { localStorage.setItem('trtc_sdkSecretKey', val); } catch {} set({ sdkSecretKey: val }); },
   setUserId: (val) => set({ userId: val }),
   setStrRoomId: (val) => set({ strRoomId: val }),
   setCameras: (devices) => set({ cameras: devices }),

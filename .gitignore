@@ -1,3 +1,6 @@
 .idea
 .vscode
 node_modules
+
+# security fix: never commit real secrets
+server/.env

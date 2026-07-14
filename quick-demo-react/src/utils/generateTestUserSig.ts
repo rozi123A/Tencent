@@ -1,23 +1,27 @@
-export function genTestUserSig({
-  sdkAppId,
-  userId,
-  sdkSecretKey,
-}: {
-  sdkAppId: number;
-  userId: string;
-  sdkSecretKey: string;
-}): { sdkAppId: number; userSig: string } {
-  const EXPIRETIME = 604800;
+/**
+ * Security fix: userSig is no longer generated in the browser with the
+ * SDKSecretKey (that key must never reach client code — see /server).
+ * Instead we call the backend signing server, which is the only place
+ * that holds the secret.
+ */
 
-  if (!sdkAppId || !sdkSecretKey) {
-    console.error('Please configure your SDKAPPID/SDKSECRETKEY');
+const USER_SIG_SERVER_URL = import.meta.env.VITE_USER_SIG_SERVER_URL || 'http://localhost:3001';
+
+export async function fetchUserSig({
+  userId,
+}: {
+  userId: string;
+}): Promise<{ sdkAppId: number; userSig: string }> {
+  const resp = await fetch(`${USER_SIG_SERVER_URL.replace(/\/$/, '')}/api/user-sig`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.error || `userSig server responded with ${resp.status}`);
   }
 
-  const generator = new (window as any).LibGenerateTestUserSig(sdkAppId, sdkSecretKey, EXPIRETIME);
-  const userSig = generator.genTestUserSig(userId);
-
-  return {
-    sdkAppId,
-    userSig,
-  };
+  return resp.json();
 }

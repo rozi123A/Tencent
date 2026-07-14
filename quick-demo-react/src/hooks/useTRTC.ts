@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import TRTC from 'trtc-sdk-v5';
 import { useAppStore, ChatMessage } from '@/store';
-import { genTestUserSig } from '@/utils/generateTestUserSig';
+import { fetchUserSig } from '@/utils/generateTestUserSig';
 import { reportSuccessEvent, reportFailedEvent } from '@/utils/aegis';
 
 export type RoomStatus = 'idle' | 'entering' | 'entered' | 'exiting';
@@ -58,17 +58,17 @@ export function useTRTC() {
     };
   }, []);
 
-  const createShareLink = useCallback((sdkAppId: number, sdkSecretKey: string, strRoomId: string) => {
+  const createShareLink = useCallback(async (sdkAppId: number, strRoomId: string) => {
     const inviteUserId = String(Math.floor(Math.random() * 1000000));
-    const { userSig } = genTestUserSig({ sdkAppId, userId: inviteUserId, sdkSecretKey });
+    const { userSig } = await fetchUserSig({ userId: inviteUserId });
     const basePath = `${window.location.origin}${window.location.pathname}`;
     return `${basePath}#/invite?userSig=${userSig}&SDKAppId=${sdkAppId}&userId=${inviteUserId}&strRoomId=${strRoomId}`;
   }, []);
 
-  const refreshLink = useCallback(() => {
-    const { sdkAppId, sdkSecretKey, strRoomId } = useAppStore.getState();
-    if (sdkAppId && sdkSecretKey && strRoomId) {
-      setShareLink(createShareLink(Number(sdkAppId), sdkSecretKey, strRoomId));
+  const refreshLink = useCallback(async () => {
+    const { sdkAppId, strRoomId } = useAppStore.getState();
+    if (sdkAppId && strRoomId) {
+      setShareLink(await createShareLink(Number(sdkAppId), strRoomId));
     }
   }, [createShareLink]);
 
@@ -155,22 +155,22 @@ export function useTRTC() {
 
   // Enter Room
   const enterRoom = useCallback(async () => {
-    const { sdkAppId, sdkSecretKey, userId, strRoomId } = useAppStore.getState();
+    const { sdkAppId, userId, strRoomId } = useAppStore.getState();
     const numericSdkAppId = Number(sdkAppId);
-    if (!numericSdkAppId || !sdkSecretKey || !userId || !strRoomId) {
-      store.addFailedLog('بيانات الاتصال غير مكتملة (SDKAppId / SecretKey)');
+    if (!numericSdkAppId || !userId || !strRoomId) {
+      store.addFailedLog('بيانات الاتصال غير مكتملة (SDKAppId)');
       return;
     }
     setRoomStatus('entering');
     bindEvents();
     try {
-      const { userSig } = genTestUserSig({ sdkAppId: numericSdkAppId, userId, sdkSecretKey });
+      const { userSig } = await fetchUserSig({ userId });
       await trtcRef.current.enterRoom({ strRoomId, sdkAppId: numericSdkAppId, userId, userSig });
       reportSuccessEvent('enterRoom', numericSdkAppId);
       store.addSuccessLog(`[${userId}] دخل الغرفة`);
       store.addParticipant(userId);
       setRoomStatus('entered');
-      setShareLink(createShareLink(numericSdkAppId, sdkSecretKey, strRoomId));
+      setShareLink(await createShareLink(numericSdkAppId, strRoomId));
     } catch (error: any) {
       console.error('enterRoom error', error);
       reportFailedEvent({ name: 'enterRoom', error, roomId: strRoomId });

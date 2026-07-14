@@ -1,12 +1,13 @@
 /// <reference types="vite/client" />
 
-interface LibGenerateTestUserSigClass {
-  new (sdkAppId: number, sdkSecretKey: string, expireTime: number): {
-    genTestUserSig(userId: string): string;
-  };
+interface ImportMetaEnv {
+  readonly VITE_SDK_APP_ID?: string;
+  readonly VITE_USER_SIG_SERVER_URL?: string;
 }
 
-declare const LibGenerateTestUserSig: LibGenerateTestUserSigClass;
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
 
 declare module '*.svg' {
   const content: string;
