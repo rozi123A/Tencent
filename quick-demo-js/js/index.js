@@ -108,13 +108,25 @@ async function fetchUserSig(uid) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: uid }),
         });
-        if (!resp.ok) {
-            const body = await resp.json().catch(() => ({}));
-            throw new Error(body.error || `Server responded with ${resp.status} at ${targetUrl}`);
+        
+        const text = await resp.text();
+        if (!text) {
+            throw new Error(`Empty response from ${targetUrl}. Is the server running?`);
         }
-        return await resp.json();
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Invalid JSON response from ${targetUrl}: ${text.substring(0, 100)}`);
+        }
+
+        if (!resp.ok) {
+            throw new Error(data.error || `Server responded with ${resp.status} at ${targetUrl}`);
+        }
+        return data;
     } catch (err) {
-        throw new Error(`Failed to fetch from ${targetUrl}: ${err.message}`);
+        throw new Error(`fetchUserSig failed: ${err.message}`);
     }
 }
 

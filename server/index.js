@@ -42,21 +42,22 @@ function isValidUserId(userId) {
 }
 
 app.post('/api/user-sig', (req, res) => {
+  console.log(`Received user-sig request for userId: ${req.body?.userId}`);
   const { userId } = req.body || {};
 
   if (!isValidUserId(userId)) {
+    console.log(`Invalid userId: ${userId}`);
     return res.status(400).json({ error: 'A valid userId is required.' });
   }
 
   try {
     const api = new TLSSigAPIv2.Api(SDK_APP_ID, SDK_SECRET_KEY);
     const userSig = api.genUserSig(userId, SIG_EXPIRE_SECONDS);
-    // sdkAppId is not secret and is safe to return alongside the signature.
+    console.log(`Successfully generated userSig for ${userId}`);
     return res.json({ sdkAppId: SDK_APP_ID, userSig });
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to generate userSig', err);
-    return res.status(500).json({ error: 'Failed to generate userSig.' });
+    console.error('Failed to generate userSig:', err);
+    return res.status(500).json({ error: 'Internal server error while generating signature.' });
   }
 });
 
