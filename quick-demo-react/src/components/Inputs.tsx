@@ -103,7 +103,7 @@ export default function Inputs({ onJoin }: InputsProps) {
             onClick={handleNewRoom}
             title="توليد غرفة جديدة"
             disabled={joining}
-          >🔄</button>
+          ><span className="lobby-btn-new-icon">🔄</span></button>
         </div>
         <p className="lobby-hint">شارك رقم الغرفة مع أصدقائك ليدخلوا معك</p>
       </div>
@@ -115,7 +115,19 @@ export default function Inputs({ onJoin }: InputsProps) {
         onClick={handleJoin}
         disabled={joining || !name.trim() || !room.trim()}
       >
-        {joining ? '⏳ جاري الاتصال...' : '🚀 انضم للغرفة'}
+        <span className="lobby-btn-join-content">
+          {joining ? (
+            <>
+              <span className="lobby-btn-spinner" />
+              جاري الاتصال...
+            </>
+          ) : (
+            <>
+              <span className="lobby-btn-join-icon">🚀</span>
+              انضم للغرفة
+            </>
+          )}
+        </span>
       </button>
     </div>
   );
