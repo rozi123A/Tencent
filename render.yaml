@@ -1,0 +1,29 @@
+services:
+  # Backend signing server — the ONLY place that holds SDKSecretKey.
+  - type: web
+    name: tencent-usersig-server
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: TENCENT_SDK_APP_ID
+        sync: false # set the real value manually in the Render dashboard (not secret, but keep out of git)
+      - key: TENCENT_SDK_SECRET_KEY
+        sync: false # SECRET — set manually in the Render dashboard, never commit it
+      - key: ALLOWED_ORIGIN
+        value: "*" # tighten to your static site's URL after first deploy
+
+  # Frontend static site — no secrets here anymore.
+  - type: web
+    name: tencent-demo-react
+    runtime: static
+    rootDir: quick-demo-react
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_SDK_APP_ID
+        sync: false # not secret, safe to expose in the client build
+      - key: VITE_USER_SIG_SERVER_URL
+        sync: false # after the first deploy, set this to the tencent-usersig-server URL Render assigns, then redeploy
