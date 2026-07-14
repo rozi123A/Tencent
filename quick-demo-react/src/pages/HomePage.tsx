@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TRTC from 'trtc-sdk-v5';
 import { useTRTC } from '@/hooks/useTRTC';
-import Guidance from '@/components/Guidance';
 import Inputs from '@/components/Inputs';
 import DeviceSelect from '@/components/DeviceSelect';
 import Controls from '@/components/Controls';
@@ -61,7 +60,6 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <div className="home-content">
-        <Guidance />
 
         <Inputs />
 
