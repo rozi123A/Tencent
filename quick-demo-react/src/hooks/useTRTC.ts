@@ -51,10 +51,20 @@ export function useTRTC() {
       TRTC.setLogLevel(1);
     }
     return () => {
-      if (trtcRef.current) {
-        trtcRef.current.destroy();
-        trtcRef.current = null;
-      }
+      // TRTC requires leave() (exitRoom) to complete before destroy() -- calling
+      // destroy() while still in a room throws "0x1001 invalid operation" and,
+      // because this runs during a React unmount, that throw happens inside an
+      // effect cleanup and crashes the whole app to a blank screen, masking
+      // whatever error actually triggered the unmount in the first place.
+      const trtc = trtcRef.current;
+      trtcRef.current = null;
+      if (!trtc) return;
+      trtc
+        .exitRoom()
+        .catch(() => {})
+        .finally(() => {
+          try { trtc.destroy(); } catch (e) { console.error('trtc.destroy() failed', e); }
+        });
     };
   }, []);
 

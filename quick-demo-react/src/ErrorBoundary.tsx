@@ -25,6 +25,28 @@ export default class ErrorBoundary extends Component<Props, State> {
     console.error('App crashed:', error, info?.componentStack);
   }
 
+  // React's error boundary only catches errors thrown during render/effects.
+  // Errors thrown from async code (event handlers, promise rejections) never
+  // reach getDerivedStateFromError, so they'd otherwise fail silently with no
+  // visible feedback at all. Catch those too and show the same screen.
+  private onWindowError = (event: ErrorEvent) => {
+    if (event.error instanceof Error) this.setState({ error: event.error });
+  };
+  private onRejection = (event: PromiseRejectionEvent) => {
+    const reason = event.reason;
+    this.setState({ error: reason instanceof Error ? reason : new Error(String(reason)) });
+  };
+
+  componentDidMount() {
+    window.addEventListener('error', this.onWindowError);
+    window.addEventListener('unhandledrejection', this.onRejection);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('error', this.onWindowError);
+    window.removeEventListener('unhandledrejection', this.onRejection);
+  }
+
   render() {
     if (this.state.error) {
       return (
