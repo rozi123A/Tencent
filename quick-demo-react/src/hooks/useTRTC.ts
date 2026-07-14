@@ -52,10 +52,15 @@ export function useTRTC() {
       TRTC.setLogLevel(1);
     }
     return () => {
-      if (trtcRef.current) {
-        trtcRef.current.destroy();
-        trtcRef.current = null;
-      }
+      const trtc = trtcRef.current;
+      trtcRef.current = null;
+      if (!trtc) return;
+      trtc
+        .exitRoom()
+        .catch(() => {})
+        .finally(() => {
+          try { trtc.destroy(); } catch (e) { console.error('trtc.destroy() failed', e); }
+        });
     };
   }, []);
 
@@ -84,11 +89,15 @@ export function useTRTC() {
       setTimeout(() => { trtc.startRemoteVideo({ userId, streamType, view: elementId }); }, 0);
     });
 
-    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }: any) => {
+    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, async ({ userId, streamType }: any) => {
       const elementId = `${userId}_${streamType}`;
-      const s = useAppStore.getState();
-      s.removeRemoteUser(elementId);
-      trtc.stopRemoteVideo({ userId, streamType });
+      try {
+        await trtc.stopRemoteVideo({ userId, streamType });
+      } catch (e) {
+        console.error('stopRemoteVideo failed', e);
+      } finally {
+        useAppStore.getState().removeRemoteUser(elementId);
+      }
     });
 
     // Track participants enter/leave
@@ -166,28 +175,29 @@ export function useTRTC() {
 
   // Enter Room
   const enterRoom = useCallback(async (pin?: string) => {
-    const { sdkAppId, userId, strRoomId, participants } = useAppStore.getState();
+    const { userId, strRoomId, participants } = useAppStore.getState();
     
     // 1. Max participants check (e.g., 10)
     if (participants.length >= 10) {
       store.addToast('❌ الغرفة ممتلئة (الحد الأقصى 10 مستخدمين)', 'error');
       return;
     }
-    const numericSdkAppId = Number(sdkAppId);
-    if (!numericSdkAppId || !userId || !strRoomId) {
-      store.addFailedLog('بيانات الاتصال غير مكتملة (SDKAppId)');
+
+    if (!userId || !strRoomId) {
+      store.addFailedLog('بيانات الاتصال غير مكتملة (الاسم أو رقم الغرفة)');
       return;
     }
     setRoomStatus('entering');
     bindEvents();
     try {
-      const { userSig } = await fetchUserSig({ userId });
-      await trtcRef.current.enterRoom({ strRoomId, sdkAppId: numericSdkAppId, userId, userSig });
-      reportSuccessEvent('enterRoom', numericSdkAppId);
+      const { sdkAppId: signedSdkAppId, userSig } = await fetchUserSig({ userId });
+      store.setSdkAppId(String(signedSdkAppId));
+      await trtcRef.current.enterRoom({ strRoomId, sdkAppId: signedSdkAppId, userId, userSig });
+      reportSuccessEvent('enterRoom', signedSdkAppId);
       store.addSuccessLog(`[${userId}] دخل الغرفة`);
       store.addParticipant(userId);
       setRoomStatus('entered');
-      setShareLink(await createShareLink(numericSdkAppId, strRoomId));
+      setShareLink(await createShareLink(signedSdkAppId, strRoomId));
     } catch (error: any) {
       console.error('enterRoom error', error);
       reportFailedEvent({ name: 'enterRoom', error, roomId: strRoomId });
@@ -205,6 +215,7 @@ export function useTRTC() {
       store.addToast(friendlyMsg, 'error');
       setRoomStatus('idle');
       unbindEvents();
+      throw error;
     }
   }, [store, bindEvents, unbindEvents, createShareLink]);
 
@@ -408,7 +419,6 @@ export function useTRTC() {
         cmdId: CHAT_CMD,
         data: encodeMsg({ text: trimmed, ts: msg.ts }),
       });
-      // Stop typing status after sending
       sendTypingStatus(false);
     } catch (e) {
       console.error('sendCustomMessage error', e);

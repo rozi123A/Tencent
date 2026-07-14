@@ -38,10 +38,16 @@ export default function InvitePage() {
     })();
 
     return () => {
-      if (trtcRef.current) {
-        trtcRef.current.destroy();
-        trtcRef.current = null;
-      }
+      const trtc = trtcRef.current;
+      trtcRef.current = null;
+      if (!trtc) return;
+      // Same TRTC requirement as the main call screen: leave() before destroy().
+      trtc
+        .exitRoom()
+        .catch(() => {})
+        .finally(() => {
+          try { trtc.destroy(); } catch (e) { console.error('trtc.destroy() failed', e); }
+        });
     };
   }, []);
 
@@ -58,11 +64,18 @@ export default function InvitePage() {
       }, 0);
     });
 
-    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }: { userId: string; streamType: string }) => {
+    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, async ({ userId, streamType }: { userId: string; streamType: string }) => {
       const elementId = `${userId}_${streamType}`;
-      const currentStore = useAppStore.getState();
-      currentStore.removeInviteRemoteUser(elementId);
-      trtc.stopRemoteVideo({ userId, streamType });
+      // Let the SDK detach its own video node from the still-mounted
+      // container before removing that container from React state -- see
+      // the matching fix in useTRTC.ts for why the order matters.
+      try {
+        await trtc.stopRemoteVideo({ userId, streamType });
+      } catch (e) {
+        console.error('stopRemoteVideo failed', e);
+      } finally {
+        useAppStore.getState().removeInviteRemoteUser(elementId);
+      }
     });
 
     await trtc.enterRoom({ strRoomId, sdkAppId, userId, userSig });

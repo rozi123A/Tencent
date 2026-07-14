@@ -6,11 +6,11 @@ import './Inputs.css';
 const NAME_KEY = 'vc_saved_name';
 
 interface InputsProps {
-  onJoin: () => Promise<void>;
+  onJoin: (pin?: string) => Promise<void>;
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
-  const { setUserId, setStrRoomId, setSdkAppId, recentRooms, addRecentRoom } = useAppStore();
+  const { setUserId, setStrRoomId, recentRooms, addRecentRoom } = useAppStore();
 
   // Load saved name from localStorage — empty string forces user to enter name
   const [name, setName] = useState<string>(() => {
@@ -30,31 +30,15 @@ export default function Inputs({ onJoin }: InputsProps) {
 
     setError('');
 
-    // Security fix: SDKSecretKey must never be shipped to the browser (it was
-    // previously read from a VITE_ env var, which Vite inlines into the public
-    // client bundle — anyone could extract it from devtools). Only the
-    // non-secret SDKAppID is needed on the client; userSig is fetched from the
-    // backend signing server (see /server) which is the only place holding the key.
-    // Default to your SDKAppID if env var is missing
-    const appId = import.meta.env.VITE_SDK_APP_ID || '20044885';
-
-    if (!appId) {
-      setError('⚠️ SDKAppID مفقود، يرجى التحقق من الإعدادات');
-      return;
-    }
-
     // Save name permanently in browser
     try { localStorage.setItem(NAME_KEY, trimName); } catch {}
 
-    setSdkAppId(appId);
     setUserId(trimName);
     setStrRoomId(trimRoom);
     addRecentRoom(trimRoom);
 
     setJoining(true);
     try {
-      // In a real production app, we would verify the PIN on the server
-      // For this demo, we'll pass it and it can be used for room validation logic
       await onJoin(pin);
     } catch (e: any) {
       setError('فشل الاتصال: ' + (e?.message || 'خطأ غير معروف'));
@@ -67,12 +51,14 @@ export default function Inputs({ onJoin }: InputsProps) {
 
   return (
     <div className="lobby-card">
-      <div className="lobby-logo">📹</div>
-      <h1 className="lobby-title">Video Call</h1>
+      <div className="lobby-logo-badge">
+        <span className="lobby-logo">📹</span>
+      </div>
+      <h1 className="lobby-title">مكالمة فيديو</h1>
       <p className="lobby-subtitle">
         {isReturning
           ? `👋 أهلاً بعودتك، ${savedName}!`
-          : 'أدخل اسمك ورقم الغرفة للانضمام'}
+          : 'اتصال فيديو سريع وآمن — أدخل اسمك ورقم الغرفة للانضمام'}
       </p>
 
       <div className="lobby-field">
@@ -112,7 +98,7 @@ export default function Inputs({ onJoin }: InputsProps) {
             onClick={handleNewRoom}
             title="توليد غرفة جديدة"
             disabled={joining}
-          >🔄</button>
+          ><span className="lobby-btn-new-icon">🔄</span></button>
         </div>
         {recentRooms.length > 0 && (
           <div className="recent-rooms">
@@ -143,7 +129,19 @@ export default function Inputs({ onJoin }: InputsProps) {
         onClick={handleJoin}
         disabled={joining || !name.trim() || !room.trim()}
       >
-        {joining ? '⏳ جاري الاتصال...' : '🚀 انضم للغرفة'}
+        <span className="lobby-btn-join-content">
+          {joining ? (
+            <>
+              <span className="lobby-btn-spinner" />
+              جاري الاتصال...
+            </>
+          ) : (
+            <>
+              <span className="lobby-btn-join-icon">🚀</span>
+              انضم للغرفة
+            </>
+          )}
+        </span>
       </button>
     </div>
   );

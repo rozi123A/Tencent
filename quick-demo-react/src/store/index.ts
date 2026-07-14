@@ -93,10 +93,19 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedMicrophoneId: (id) => set({ selectedMicrophoneId: id }),
   addSuccessLog: (content) => set((s) => ({ logs: [...s.logs, { type: 'success', content }] })),
   addFailedLog: (content) => set((s) => ({ logs: [...s.logs, { type: 'failed', content }] })),
-  addRemoteUser: (user) => set((s) => ({ remoteUsers: [...s.remoteUsers, user] })),
+  // Dedupe by elementId: TRTC can fire REMOTE_VIDEO_AVAILABLE twice in a row
+  // for the same user/streamType (e.g. quick camera toggles, reconnects).
+  // Pushing a second entry would render two DOM nodes with the same React
+  // key/id, and when one gets cleaned up React and the SDK fight over the
+  // same node and throw "removeChild: node is not a child of this node".
+  addRemoteUser: (user) => set((s) => (
+    s.remoteUsers.some((u) => u.elementId === user.elementId) ? s : { remoteUsers: [...s.remoteUsers, user] }
+  )),
   removeRemoteUser: (elementId) => set((s) => ({ remoteUsers: s.remoteUsers.filter((u) => u.elementId !== elementId) })),
   clearRemoteUsers: () => set({ remoteUsers: [] }),
-  addInviteRemoteUser: (user) => set((s) => ({ inviteRemoteUsers: [...s.inviteRemoteUsers, user] })),
+  addInviteRemoteUser: (user) => set((s) => (
+    s.inviteRemoteUsers.some((u) => u.elementId === user.elementId) ? s : { inviteRemoteUsers: [...s.inviteRemoteUsers, user] }
+  )),
   removeInviteRemoteUser: (elementId) => set((s) => ({ inviteRemoteUsers: s.inviteRemoteUsers.filter((u) => u.elementId !== elementId) })),
   clearInviteRemoteUsers: () => set({ inviteRemoteUsers: [] }),
 

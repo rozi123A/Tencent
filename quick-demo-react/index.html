@@ -8,6 +8,16 @@
   <link rel="icon" href="https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio48.avif" />
   <title>Quick Demo React | Tencent RTC</title>
 
+  <!-- Chrome's built-in page translator rewrites text nodes directly in the
+       DOM (wrapping them in its own <font> tags), bypassing React entirely.
+       When React later tries to update/remove a node that Translate has
+       moved or replaced, the browser throws "removeChild: node is not a
+       child of this node" and the whole app crashes -- this only happens in
+       browsers/profiles where Chrome offers translation (e.g. it detects the
+       Arabic UI text and offers to translate to the browser's language), so
+       it looked "browser-specific". Opt this page out of Chrome Translate. -->
+  <meta name="google" content="notranslate" />
+
   <!-- Open Graph Meta Tags -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Quick Demo React | Tencent RTC" />
@@ -24,8 +34,8 @@
        from the backend signing server (see /server). -->
 </head>
 
-<body>
-  <div id="root"></div>
+<body translate="no">
+  <div id="root" class="notranslate"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
