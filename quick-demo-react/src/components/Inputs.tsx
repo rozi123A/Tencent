@@ -34,10 +34,11 @@ export default function Inputs({ onJoin }: InputsProps) {
     // client bundle — anyone could extract it from devtools). Only the
     // non-secret SDKAppID is needed on the client; userSig is fetched from the
     // backend signing server (see /server) which is the only place holding the key.
-    const appId = import.meta.env.VITE_SDK_APP_ID || '';
+    // Default to your SDKAppID if env var is missing
+    const appId = import.meta.env.VITE_SDK_APP_ID || '20044885';
 
     if (!appId) {
-      setError('⚠️ VITE_SDK_APP_ID غير مضبوطة في Environment Variables');
+      setError('⚠️ SDKAppID مفقود، يرجى التحقق من الإعدادات');
       return;
     }
 
