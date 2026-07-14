@@ -33,6 +33,51 @@ body {
   color: var(--text);
 }
 
+/* ── Lobby backdrop ──────────────────────────────────────── */
+.lobby-page {
+  position: relative;
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(77, 124, 254, 0.10), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(108, 92, 231, 0.10), transparent 45%),
+    var(--bg);
+}
+
+.lobby-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  opacity: 0.55;
+  z-index: 0;
+  animation: lobby-drift 12s ease-in-out infinite;
+}
+
+.lobby-glow-1 {
+  top: -140px;
+  left: -120px;
+  background: radial-gradient(circle, #4d7cfe, transparent 70%);
+}
+
+.lobby-glow-2 {
+  bottom: -160px;
+  right: -120px;
+  background: radial-gradient(circle, #6c5ce7, transparent 70%);
+  animation-delay: -6s;
+}
+
+@keyframes lobby-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(24px, -18px) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-glow { animation: none; }
+}
+
 .home-content {
   width: 100%;
   max-width: 980px;

@@ -56,12 +56,14 @@ export default function Inputs({ onJoin }: InputsProps) {
 
   return (
     <div className="lobby-card">
-      <div className="lobby-logo">📹</div>
-      <h1 className="lobby-title">Video Call</h1>
+      <div className="lobby-logo-badge">
+        <span className="lobby-logo">📹</span>
+      </div>
+      <h1 className="lobby-title">مكالمة فيديو</h1>
       <p className="lobby-subtitle">
         {isReturning
           ? `👋 أهلاً بعودتك، ${savedName}!`
-          : 'أدخل اسمك ورقم الغرفة للانضمام'}
+          : 'اتصال فيديو سريع وآمن — أدخل اسمك ورقم الغرفة للانضمام'}
       </p>
 
       <div className="lobby-field">

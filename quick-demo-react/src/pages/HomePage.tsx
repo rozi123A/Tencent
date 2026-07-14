@@ -63,7 +63,9 @@ export default function HomePage() {
   // ── LOBBY ─────────────────────────────────────────────────
   if (roomStatus === 'idle') {
     return (
-      <div className="home-page">
+      <div className="home-page lobby-page">
+        <div className="lobby-glow lobby-glow-1" />
+        <div className="lobby-glow lobby-glow-2" />
         <Inputs onJoin={enterRoom} />
       </div>
     );
