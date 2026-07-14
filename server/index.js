@@ -30,11 +30,12 @@ console.log('TENCENT_SDK_SECRET_KEY exists:', !!process.env.TENCENT_SDK_SECRET_K
 console.log('Available keys:', Object.keys(process.env).filter(k => k.includes('TENCENT') || k.includes('SDK') || k.includes('APP_ID')));
 
 if (!SDK_APP_ID || !SDK_SECRET_KEY) {
-  console.error(
-    'CRITICAL ERROR: Missing TENCENT_SDK_APP_ID or TENCENT_SDK_SECRET_KEY. ' +
-    'Check your Render dashboard environment variables.'
+  console.warn(
+    'WARNING: Missing TENCENT_SDK_APP_ID or TENCENT_SDK_SECRET_KEY. ' +
+    'The server will start but userSig generation will fail. ' +
+    'Please check your Render dashboard environment variables.'
   );
-  process.exit(1);
+  // Do not exit, allow server to start for debugging
 }
 
 const path = require('path');
