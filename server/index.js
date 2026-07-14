@@ -24,11 +24,15 @@ const PORT = Number(process.env.PORT) || 3001;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
 const SIG_EXPIRE_SECONDS = 24 * 60 * 60; // 1 day; keep short-lived, not 7+ days
 
+console.log('--- Environment Check ---');
+console.log('TENCENT_SDK_APP_ID exists:', !!process.env.TENCENT_SDK_APP_ID);
+console.log('TENCENT_SDK_SECRET_KEY exists:', !!process.env.TENCENT_SDK_SECRET_KEY);
+console.log('Available keys:', Object.keys(process.env).filter(k => k.includes('TENCENT') || k.includes('SDK') || k.includes('APP_ID')));
+
 if (!SDK_APP_ID || !SDK_SECRET_KEY) {
-  // eslint-disable-next-line no-console
   console.error(
-    'Missing TENCENT_SDK_APP_ID / TENCENT_SDK_SECRET_KEY environment variables. ' +
-      'Set them as secrets, never commit them to the repo.'
+    'CRITICAL ERROR: Missing TENCENT_SDK_APP_ID or TENCENT_SDK_SECRET_KEY. ' +
+    'Check your Render dashboard environment variables.'
   );
   process.exit(1);
 }
