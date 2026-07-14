@@ -2,7 +2,7 @@
 // -------document events--------
 
 document.getElementById('sdkAppId').value = getQueryString('sdkAppId') || localStorage.getItem('trtc_sdkAppId') || '';
-document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || 'http://localhost:3001';
+document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || window.location.origin.replace(/:\d+$/, ':3001');
 document.getElementById('userId').value = getQueryString('userId') || 'user_' + Math.floor(Math.random() * 1000000);
 document.getElementById('strRoomId').value = getQueryString('strRoomId') || 'room_' + Math.floor(Math.random() * 1000);
 const state = { url:window.location.href.split("?")[0] };
@@ -105,12 +105,15 @@ async function fetchUserSig(uid) {
 	return resp.json();
 }
 
-async function enterRoom() {
+async function enterRoom(event) {
+	if (event && event.preventDefault) event.preventDefault();
 	if (window.isIframe) initDevice();
 	setButtonLoading('enter', true);
 	try {
 		initParams()
+		console.log('Fetching userSig for userId:', userId, 'from:', userSigServerUrl);
 		const { userSig } = await fetchUserSig(userId);
+		console.log('userSig fetched successfully');
 		await trtc.enterRoom({ strRoomId, sdkAppId, userId, userSig })
 		reportSuccessEvent('enterRoom', sdkAppId)
 		refreshLink()
@@ -119,7 +122,7 @@ async function enterRoom() {
 		setButtonLoading('enter', false);
 		setButtonDisabled('enter', true);
 	} catch (error) {
-		console.log('enterRoom error', error);
+		console.error('enterRoom error:', error);
 		setButtonLoading('enter', false);
 		reportFailedEvent({
 			name: 'enterRoom',
@@ -127,7 +130,9 @@ async function enterRoom() {
 			roomId: strRoomId,
 			error
 		})
-		addFailedLog(`[${userId}] enterRoom failed. Reason: ${error.message || error}`);
+		const errorMsg = error.message || error;
+		addFailedLog(`[${userId}] enterRoom failed. Reason: ${errorMsg}`);
+		alert('Failed to enter room: ' + errorMsg);
 	}
 }
 
