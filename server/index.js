@@ -18,24 +18,25 @@ const express = require('express');
 const cors = require('cors');
 const TLSSigAPIv2 = require('tls-sig-api-v2');
 
-const SDK_APP_ID = Number(process.env.TENCENT_SDK_APP_ID);
+// Enhanced debug logging
+console.log('--- SYSTEM DEBUG START ---');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PWD:', process.cwd());
+
+const rawAppId = process.env.TENCENT_SDK_APP_ID || process.env.VITE_SDK_APP_ID;
+const SDK_APP_ID = Number(rawAppId);
 const SDK_SECRET_KEY = process.env.TENCENT_SDK_SECRET_KEY;
 const PORT = Number(process.env.PORT) || 3001;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
-const SIG_EXPIRE_SECONDS = 24 * 60 * 60; // 1 day; keep short-lived, not 7+ days
+const SIG_EXPIRE_SECONDS = 24 * 60 * 60;
 
 console.log('--- Environment Check ---');
-console.log('TENCENT_SDK_APP_ID exists:', !!process.env.TENCENT_SDK_APP_ID);
-console.log('TENCENT_SDK_SECRET_KEY exists:', !!process.env.TENCENT_SDK_SECRET_KEY);
-console.log('Available keys:', Object.keys(process.env).filter(k => k.includes('TENCENT') || k.includes('SDK') || k.includes('APP_ID')));
+console.log('Raw App ID from env:', rawAppId);
+console.log('Parsed SDK_APP_ID:', SDK_APP_ID);
+console.log('SDK_SECRET_KEY exists (length):', SDK_SECRET_KEY ? SDK_SECRET_KEY.length : 0);
 
 if (!SDK_APP_ID || !SDK_SECRET_KEY) {
-  console.warn(
-    'WARNING: Missing TENCENT_SDK_APP_ID or TENCENT_SDK_SECRET_KEY. ' +
-    'The server will start but userSig generation will fail. ' +
-    'Please check your Render dashboard environment variables.'
-  );
-  // Do not exit, allow server to start for debugging
+  console.error('CRITICAL: Missing credentials! Generating userSig will fail.');
 }
 
 const path = require('path');

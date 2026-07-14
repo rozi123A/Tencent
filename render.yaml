@@ -4,8 +4,8 @@ services:
     name: tencent-fullstack-app
     runtime: node
     rootDir: .
-    buildCommand: "cd quick-demo-react && npm install && npm run build && cd ../server && npm install"
-    startCommand: cd server && npm start
+    buildCommand: "npm install --prefix quick-demo-react && npm run build --prefix quick-demo-react && npm install --prefix server"
+    startCommand: "node server/index.js"
     plan: free
     envVars:
       - key: TENCENT_SDK_APP_ID
