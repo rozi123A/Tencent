@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TRTC from 'trtc-sdk-v5';
 import { useTRTC } from '@/hooks/useTRTC';
@@ -14,7 +14,6 @@ import './HomePage.css';
 
 export default function HomePage() {
   const { i18n } = useTranslation();
-  const [lobbyDone, setLobbyDone] = useState(false);
   const { strRoomId, userId } = useAppStore();
 
   const {
@@ -56,21 +55,13 @@ export default function HomePage() {
     });
   }, []);
 
-  const handleJoinFromLobby = async () => {
-    setLobbyDone(true);
-    await enterRoom();
-  };
+  // ── Lobby Screen — show while idle ────────────────────────
+  const isIdle = roomStatus === 'idle';
 
-  const handleExitRoom = async () => {
-    await exitRoom();
-    setLobbyDone(false);
-  };
-
-  // ── Lobby Screen ──────────────────────────────────────────
-  if (!lobbyDone) {
+  if (isIdle) {
     return (
       <div className="home-page">
-        <Inputs onJoin={handleJoinFromLobby} />
+        <Inputs onJoin={enterRoom} />
       </div>
     );
   }
@@ -80,7 +71,7 @@ export default function HomePage() {
     <div className="home-page">
       <div className="home-content">
 
-        {/* Room badge */}
+        {/* Room info badge */}
         <div className="room-badge">
           <span className="room-badge-dot" />
           غرفة: <strong>{strRoomId}</strong>
@@ -100,7 +91,7 @@ export default function HomePage() {
           micStatus={micStatus}
           shareStatus={shareStatus}
           onEnterRoom={enterRoom}
-          onExitRoom={handleExitRoom}
+          onExitRoom={exitRoom}
           onStartLocalAudio={startLocalAudio}
           onStopLocalAudio={stopLocalAudio}
           onStartLocalVideo={() => startLocalVideo('local')}

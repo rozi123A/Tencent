@@ -8,14 +8,17 @@ interface InputsProps {
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
-  const { userId, strRoomId, setUserId, setStrRoomId, setSdkAppId, setSdkSecretKey } = useAppStore();
+  const { setUserId, setStrRoomId, setSdkAppId, setSdkSecretKey } = useAppStore();
   const [localName, setLocalName] = useState('');
   const [localRoom, setLocalRoom] = useState('');
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
+    // Set hidden credentials from env vars
     setSdkAppId(import.meta.env.VITE_SDK_APP_ID || '');
     setSdkSecretKey(import.meta.env.VITE_SDK_SECRET_KEY || '');
 
+    // Generate random defaults
     const name = generateRandomUserId();
     const room = generateRandomRoomId();
     setLocalName(name);
@@ -30,11 +33,17 @@ export default function Inputs({ onJoin }: InputsProps) {
     setStrRoomId(room);
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!localName.trim() || !localRoom.trim()) return;
+    // Sync latest values to store
     setUserId(localName.trim());
     setStrRoomId(localRoom.trim());
-    onJoin();
+    setJoining(true);
+    try {
+      await onJoin();
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -50,8 +59,12 @@ export default function Inputs({ onJoin }: InputsProps) {
           type="text"
           placeholder="أدخل اسمك..."
           value={localName}
-          onChange={(e) => { setLocalName(e.target.value); setUserId(e.target.value); }}
+          onChange={(e) => {
+            setLocalName(e.target.value);
+            setUserId(e.target.value);
+          }}
           maxLength={30}
+          disabled={joining}
         />
       </div>
 
@@ -63,10 +76,19 @@ export default function Inputs({ onJoin }: InputsProps) {
             type="text"
             placeholder="أدخل رقم الغرفة..."
             value={localRoom}
-            onChange={(e) => { setLocalRoom(e.target.value); setStrRoomId(e.target.value); }}
+            onChange={(e) => {
+              setLocalRoom(e.target.value);
+              setStrRoomId(e.target.value);
+            }}
             maxLength={20}
+            disabled={joining}
           />
-          <button className="lobby-btn-new" onClick={handleNewRoom} title="غرفة جديدة">🔄</button>
+          <button
+            className="lobby-btn-new"
+            onClick={handleNewRoom}
+            title="غرفة جديدة"
+            disabled={joining}
+          >🔄</button>
         </div>
         <p className="lobby-hint">شارك رقم الغرفة مع أصدقائك ليدخلوا معك</p>
       </div>
@@ -74,9 +96,9 @@ export default function Inputs({ onJoin }: InputsProps) {
       <button
         className="lobby-btn-join"
         onClick={handleJoin}
-        disabled={!localName.trim() || !localRoom.trim()}
+        disabled={joining || !localName.trim() || !localRoom.trim()}
       >
-        🚀 انضم للغرفة
+        {joining ? '⏳ جاري الاتصال...' : '🚀 انضم للغرفة'}
       </button>
     </div>
   );
