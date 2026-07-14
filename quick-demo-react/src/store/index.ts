@@ -26,6 +26,9 @@ interface AppState {
   theme: 'dark' | 'light';
   networkQuality: { uplink: number; downlink: number };
   roomLocked: boolean;
+  toasts: { id: string; message: string; type: 'info' | 'error' }[];
+  recentRooms: string[];
+  typingUsers: string[];
   // Setters
   setSdkAppId: (val: string) => void;
   setUserId: (val: string) => void;
@@ -51,6 +54,10 @@ interface AppState {
   setTheme: (theme: 'dark' | 'light') => void;
   setNetworkQuality: (q: { uplink: number; downlink: number }) => void;
   setRoomLocked: (locked: boolean) => void;
+  addToast: (message: string, type?: 'info' | 'error') => void;
+  removeToast: (id: string) => void;
+  addRecentRoom: (roomId: string) => void;
+  setTyping: (userId: string, typing: boolean) => void;
 }
 
 const savedTheme = (() => {
@@ -73,6 +80,9 @@ export const useAppStore = create<AppState>((set) => ({
   theme: savedTheme,
   networkQuality: { uplink: 0, downlink: 0 },
   roomLocked: false,
+  toasts: [],
+  recentRooms: (() => { try { return JSON.parse(localStorage.getItem('vc_recent_rooms') || '[]'); } catch { return []; } })(),
+  typingUsers: [],
 
   setSdkAppId: (val) => { try { localStorage.setItem('trtc_sdkAppId', val); } catch {} set({ sdkAppId: val }); },
   setUserId: (val) => set({ userId: val }),
@@ -98,4 +108,22 @@ export const useAppStore = create<AppState>((set) => ({
   setTheme: (theme) => { try { localStorage.setItem('vc_theme', theme); } catch {} set({ theme }); },
   setNetworkQuality: (q) => set({ networkQuality: q }),
   setRoomLocked: (locked) => set({ roomLocked: locked }),
+  addToast: (message, type = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
+    setTimeout(() => {
+      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+    }, 5000);
+  },
+  removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  addRecentRoom: (roomId) => set((s) => {
+    const updated = [roomId, ...s.recentRooms.filter(r => r !== roomId)].slice(0, 5);
+    try { localStorage.setItem('vc_recent_rooms', JSON.stringify(updated)); } catch {}
+    return { recentRooms: updated };
+  }),
+  setTyping: (userId, typing) => set((s) => ({
+    typingUsers: typing 
+      ? (s.typingUsers.includes(userId) ? s.typingUsers : [...s.typingUsers, userId])
+      : s.typingUsers.filter(u => u !== userId)
+  })),
 }));

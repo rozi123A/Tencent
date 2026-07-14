@@ -75,6 +75,20 @@
   color: var(--text-muted);
 }
 
+.chat-typing-indicator {
+  font-size: 11px;
+  color: #4d7cfe;
+  font-style: italic;
+  padding: 4px 12px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
 .chat-input-row {
   display: flex;
   gap: 6px;

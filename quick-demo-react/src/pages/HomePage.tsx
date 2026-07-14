@@ -41,6 +41,7 @@ export default function HomePage() {
     initDevice,
     refreshLink,
     sendChatMessage,
+    sendTypingStatus,
     toggleRoomLock,
   } = useTRTC();
 
@@ -132,7 +133,10 @@ export default function HomePage() {
         {/* Side panels: chat + participants */}
         {isEntered && (
           <div className="side-panels">
-            <ChatPanel onSend={sendChatMessage} />
+            <ChatPanel 
+              onSend={sendChatMessage} 
+              onTyping={(typing) => sendTypingStatus(typing)} 
+            />
             <ParticipantsList />
           </div>
         )}

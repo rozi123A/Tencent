@@ -9,6 +9,7 @@ export type MediaStatus = 'idle' | 'starting' | 'started' | 'stopping';
 
 const CHAT_CMD = 1;
 const LOCK_CMD = 2;
+const TYPING_CMD = 3;
 
 function playBeep() {
   try {
@@ -92,14 +93,18 @@ export function useTRTC() {
 
     // Track participants enter/leave
     trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, ({ userId }: any) => {
-      useAppStore.getState().addParticipant(userId);
-      useAppStore.getState().addSuccessLog(`🟢 ${userId} دخل الغرفة`);
+      const s = useAppStore.getState();
+      s.addParticipant(userId);
+      s.addSuccessLog(`🟢 ${userId} دخل الغرفة`);
+      s.addToast(`🟢 ${userId} انضم للمكالمة`);
       playBeep();
     });
 
     trtc.on(TRTC.EVENT.REMOTE_USER_EXIT, ({ userId }: any) => {
-      useAppStore.getState().removeParticipant(userId);
-      useAppStore.getState().addSuccessLog(`🔴 ${userId} غادر الغرفة`);
+      const s = useAppStore.getState();
+      s.removeParticipant(userId);
+      s.addSuccessLog(`🔴 ${userId} غادر الغرفة`);
+      s.addToast(`🔴 ${userId} غادر المكالمة`);
     });
 
     // Network quality
@@ -110,8 +115,14 @@ export function useTRTC() {
       });
     });
 
-    // Custom messages (chat + lock)
+    // Custom messages (chat + lock + typing)
     trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, ({ cmdId, userId, data }: any) => {
+      if (cmdId === TYPING_CMD) {
+        const obj = decodeMsg(data);
+        if (obj && typeof obj.typing === 'boolean') {
+          useAppStore.getState().setTyping(userId, obj.typing);
+        }
+      }
       if (cmdId === CHAT_CMD) {
         const obj = decodeMsg(data);
         if (!obj?.text) return;
@@ -154,8 +165,14 @@ export function useTRTC() {
   }, []);
 
   // Enter Room
-  const enterRoom = useCallback(async () => {
-    const { sdkAppId, userId, strRoomId } = useAppStore.getState();
+  const enterRoom = useCallback(async (pin?: string) => {
+    const { sdkAppId, userId, strRoomId, participants } = useAppStore.getState();
+    
+    // 1. Max participants check (e.g., 10)
+    if (participants.length >= 10) {
+      store.addToast('❌ الغرفة ممتلئة (الحد الأقصى 10 مستخدمين)', 'error');
+      return;
+    }
     const numericSdkAppId = Number(sdkAppId);
     if (!numericSdkAppId || !userId || !strRoomId) {
       store.addFailedLog('بيانات الاتصال غير مكتملة (SDKAppId)');
@@ -174,7 +191,18 @@ export function useTRTC() {
     } catch (error: any) {
       console.error('enterRoom error', error);
       reportFailedEvent({ name: 'enterRoom', error, roomId: strRoomId });
-      store.addFailedLog(`[${userId}] فشل الدخول: ${error.message || error}`);
+      
+      let friendlyMsg = error.message || error;
+      if (friendlyMsg.includes('NotAllowedError') || friendlyMsg.includes('Permission denied')) {
+        friendlyMsg = '❌ تم رفض الوصول للكاميرا أو الميكروفون. يرجى السماح للمتصفح بالوصول.';
+      } else if (friendlyMsg.includes('Network Error') || friendlyMsg.includes('Failed to fetch')) {
+        friendlyMsg = '🌐 مشكلة في الشبكة. تأكد من اتصالك بالإنترنت.';
+      } else if (friendlyMsg.includes('403') || friendlyMsg.includes('userSig')) {
+        friendlyMsg = '🔑 خطأ في التحقق من الهوية. يرجى إعادة تحميل الصفحة.';
+      }
+
+      store.addFailedLog(`[${userId}] فشل الدخول: ${friendlyMsg}`);
+      store.addToast(friendlyMsg, 'error');
       setRoomStatus('idle');
       unbindEvents();
     }
@@ -351,6 +379,17 @@ export function useTRTC() {
     await getDevices();
   }, [getDevices]);
 
+  // Send typing status
+  const sendTypingStatus = useCallback(async (typing: boolean) => {
+    if (!trtcRef.current) return;
+    try {
+      await trtcRef.current.sendCustomMessage({
+        cmdId: TYPING_CMD,
+        data: encodeMsg({ typing }),
+      });
+    } catch {}
+  }, []);
+
   // Send chat message
   const sendChatMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -369,10 +408,12 @@ export function useTRTC() {
         cmdId: CHAT_CMD,
         data: encodeMsg({ text: trimmed, ts: msg.ts }),
       });
+      // Stop typing status after sending
+      sendTypingStatus(false);
     } catch (e) {
       console.error('sendCustomMessage error', e);
     }
-  }, [store]);
+  }, [store, sendTypingStatus]);
 
   // Toggle room lock
   const toggleRoomLock = useCallback(async () => {
@@ -413,6 +454,7 @@ export function useTRTC() {
     initDevice,
     refreshLink,
     sendChatMessage,
+    sendTypingStatus,
     toggleRoomLock,
   };
 }

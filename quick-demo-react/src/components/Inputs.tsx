@@ -10,13 +10,14 @@ interface InputsProps {
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
-  const { setUserId, setStrRoomId, setSdkAppId } = useAppStore();
+  const { setUserId, setStrRoomId, setSdkAppId, recentRooms, addRecentRoom } = useAppStore();
 
   // Load saved name from localStorage — empty string forces user to enter name
   const [name, setName] = useState<string>(() => {
     try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
   });
   const [room, setRoom] = useState(() => generateRandomRoomId());
+  const [pin, setPin] = useState('');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,10 +49,13 @@ export default function Inputs({ onJoin }: InputsProps) {
     setSdkAppId(appId);
     setUserId(trimName);
     setStrRoomId(trimRoom);
+    addRecentRoom(trimRoom);
 
     setJoining(true);
     try {
-      await onJoin();
+      // In a real production app, we would verify the PIN on the server
+      // For this demo, we'll pass it and it can be used for room validation logic
+      await onJoin(pin);
     } catch (e: any) {
       setError('فشل الاتصال: ' + (e?.message || 'خطأ غير معروف'));
       setJoining(false);
@@ -110,7 +114,26 @@ export default function Inputs({ onJoin }: InputsProps) {
             disabled={joining}
           >🔄</button>
         </div>
-        <p className="lobby-hint">شارك رقم الغرفة مع أصدقائك ليدخلوا معك</p>
+        {recentRooms.length > 0 && (
+          <div className="recent-rooms">
+            {recentRooms.map(r => (
+              <span key={r} className="recent-room-tag" onClick={() => setRoom(r)}>{r}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="lobby-field">
+        <label className="lobby-label">🔑 رمز الدخول (PIN - اختياري)</label>
+        <input
+          className="lobby-input"
+          type="password"
+          placeholder="اتركه فارغاً إذا لا يوجد رمز..."
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          maxLength={6}
+          disabled={joining}
+        />
       </div>
 
       {error && <p className="lobby-error">{error}</p>}
