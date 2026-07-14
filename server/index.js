@@ -38,8 +38,14 @@ const app = express();
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json());
 
-// Serve static files from the quick-demo-js directory
-app.use(express.static(path.join(__dirname, '../quick-demo-js')));
+// Serve static files from the quick-demo-react/dist directory (React build)
+app.use(express.static(path.join(__dirname, '../quick-demo-react/dist')));
+
+// Fallback to index.html for React Router
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(__dirname, '../quick-demo-react/dist/index.html'));
+});
 
 function isValidUserId(userId) {
   return typeof userId === 'string' && userId.length > 0 && userId.length <= 64 && /^[\w-]+$/.test(userId);

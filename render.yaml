@@ -1,10 +1,10 @@
 services:
-  # Unified Server & Frontend — Solves HTTPS/CORS issues
+  # Unified Server & Frontend (React Version)
   - type: web
     name: tencent-fullstack-app
     runtime: node
     rootDir: .
-    buildCommand: cd server && npm install
+    buildCommand: "cd quick-demo-react && npm install && npm run build && cd ../server && npm install"
     startCommand: cd server && npm start
     plan: free
     envVars:
