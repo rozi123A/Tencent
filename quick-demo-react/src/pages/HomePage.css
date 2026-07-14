@@ -1,29 +1,60 @@
+/* ── CSS Variables (themes) ─────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg:       #1a1a2e;
+  --surface:  #16213e;
+  --surface2: #0f3460;
+  --border:   #1a4a7a;
+  --text:     #e0e0e0;
+  --text-muted: #7899bb;
+}
+
+[data-theme="light"] {
+  --bg:       #f0f4ff;
+  --surface:  #ffffff;
+  --surface2: #e8eeff;
+  --border:   #c5d0e8;
+  --text:     #1a1a2e;
+  --text-muted: #5a6a8a;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── Layout ──────────────────────────────────────────────── */
 .home-page {
   padding: 0 12px;
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  background-color: #1a1a2e;
-  color: #ffffff;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
+.home-content {
+  width: 100%;
+  max-width: 980px;
+}
+
+/* ── Room badge ──────────────────────────────────────────── */
 .room-badge {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  background: #16213e;
-  border: 1px solid #0f3460;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 16px;
-  margin: 16px 0 12px 0;
-  font-size: 14px;
-  color: #aabbcc;
+  padding: 8px 14px;
+  margin: 14px 0 10px 0;
+  font-size: 13px;
+  color: var(--text-muted);
   direction: rtl;
 }
 
-.room-badge strong {
-  color: #4d7cfe;
-}
+.room-badge strong { color: #4d7cfe; }
 
 .room-badge-dot {
   width: 9px;
@@ -36,13 +67,28 @@
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50%       { opacity: 0.4; }
 }
+
+/* ── Badge icon buttons ──────────────────────────────────── */
+.badge-icon-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.badge-icon-btn:hover { background: var(--border); }
+.badge-icon-btn.lock-active { color: #ffc107; border-color: #ffc10755; }
 
 .room-exit-btn {
   margin-right: auto;
-  background: rgba(220, 53, 69, 0.15);
-  border: 1px solid rgba(220, 53, 69, 0.4);
+  background: rgba(220, 53, 69, 0.12);
+  border: 1px solid rgba(220, 53, 69, 0.35);
   border-radius: 6px;
   color: #ff6b7a;
   font-size: 13px;
@@ -51,39 +97,52 @@
   transition: background 0.2s;
 }
 
-.room-exit-btn:hover:not(:disabled) {
-  background: rgba(220, 53, 69, 0.3);
+.room-exit-btn:hover:not(:disabled) { background: rgba(220, 53, 69, 0.25); }
+.room-exit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Call timer & network ────────────────────────────────── */
+.call-timer {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
-.room-exit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.net-quality {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
 }
 
-.call-controls-entering {
+/* ── Side panels ─────────────────────────────────────────── */
+.side-panels {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  color: #aabbcc;
-  font-size: 15px;
+  gap: 12px;
+  margin: 12px 0;
+  flex-wrap: wrap;
 }
 
-.home-content {
-  width: 100%;
-  max-width: 960px;
-}
-
+/* ── Media section ───────────────────────────────────────── */
 .home-media-section {
   display: flex;
   width: 100%;
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: space-between;
+  margin-top: 12px;
+}
+
+/* ── Entering state ──────────────────────────────────────── */
+.call-controls-entering {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 15px;
 }
 
 @media (max-width: 540px) {
-  .home-media-section {
-    flex-direction: column;
-  }
+  .home-media-section { flex-direction: column; }
+  .side-panels { flex-direction: column; }
 }

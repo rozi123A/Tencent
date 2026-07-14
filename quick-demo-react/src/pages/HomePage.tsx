@@ -8,11 +8,15 @@ import LogPanel from '@/components/LogPanel';
 import LocalVideo from '@/components/LocalVideo';
 import RemoteVideos from '@/components/RemoteVideos';
 import CallControls from '@/components/CallControls';
+import ChatPanel from '@/components/ChatPanel';
+import ParticipantsList from '@/components/ParticipantsList';
+import CallTimer from '@/components/CallTimer';
+import NetworkQuality from '@/components/NetworkQuality';
 import { useAppStore } from '@/store';
 import './HomePage.css';
 
 export default function HomePage() {
-  const { strRoomId, userId } = useAppStore();
+  const { strRoomId, userId, theme, setTheme, roomLocked } = useAppStore();
 
   const {
     roomStatus,
@@ -36,7 +40,14 @@ export default function HomePage() {
     updateLocalVideoDevice,
     initDevice,
     refreshLink,
+    sendChatMessage,
+    toggleRoomLock,
   } = useTRTC();
+
+  // Apply theme to <html>
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     document.title = 'Video Call';
@@ -44,6 +55,10 @@ export default function HomePage() {
       if (!r.result) alert('المتصفح لا يدعم TRTC. استخدم أحدث إصدار من Chrome.');
     });
   }, []);
+
+  const copyRoomCode = () => {
+    try { navigator.clipboard.writeText(strRoomId); } catch {}
+  };
 
   // ── LOBBY ─────────────────────────────────────────────────
   if (roomStatus === 'idle') {
@@ -54,16 +69,36 @@ export default function HomePage() {
     );
   }
 
+  const isEntered = roomStatus === 'entered';
+
   // ── CALL SCREEN ───────────────────────────────────────────
   return (
     <div className="home-page">
       <div className="home-content">
 
+        {/* Top bar */}
         <div className="room-badge">
           <span className="room-badge-dot" />
-          غرفة: <strong>{strRoomId}</strong>
-          &nbsp;|&nbsp;
-          أنت: <strong>{userId}</strong>
+          <span>
+            غرفة: <strong>{strRoomId}</strong>
+            &nbsp;|&nbsp;
+            أنت: <strong>{userId}</strong>
+          </span>
+
+          {isEntered && <CallTimer running={isEntered} />}
+          {isEntered && <NetworkQuality />}
+
+          <button className="badge-icon-btn" onClick={copyRoomCode} title="نسخ رقم الغرفة">📋</button>
+          <button
+            className={`badge-icon-btn ${roomLocked ? 'lock-active' : ''}`}
+            onClick={toggleRoomLock}
+            title={roomLocked ? 'فتح الغرفة' : 'قفل الغرفة'}
+          >{roomLocked ? '🔒' : '🔓'}</button>
+          <button
+            className="badge-icon-btn theme-btn"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title="تغيير المظهر"
+          >{theme === 'dark' ? '☀️' : '🌙'}</button>
           <button className="room-exit-btn" onClick={exitRoom} disabled={roomStatus === 'exiting'}>
             {roomStatus === 'exiting' ? '⏳' : '🚪 خروج'}
           </button>
@@ -89,10 +124,18 @@ export default function HomePage() {
         />
 
         <InviteLink
-          visible={roomStatus === 'entered'}
+          visible={isEntered}
           link={shareLink}
           onCopied={refreshLink}
         />
+
+        {/* Side panels: chat + participants */}
+        {isEntered && (
+          <div className="side-panels">
+            <ChatPanel onSend={sendChatMessage} />
+            <ParticipantsList />
+          </div>
+        )}
 
         <div className="home-media-section">
           <LogPanel />
