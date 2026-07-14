@@ -16,8 +16,8 @@ export default function Inputs() {
     const urlUserId = getUrlParam('userId') || generateRandomUserId();
     const urlRoomId = getUrlParam('strRoomId') || generateRandomRoomId();
 
-    setSdkAppId(urlSdkAppId || localStorage.getItem('trtc_sdkAppId') || '');
-    setSdkSecretKey(urlSecretKey || localStorage.getItem('trtc_sdkSecretKey') || '');
+    setSdkAppId(urlSdkAppId || localStorage.getItem('trtc_sdkAppId') || '20044885');
+    setSdkSecretKey(urlSecretKey || localStorage.getItem('trtc_sdkSecretKey') || '47ddea4077bcd9b3e2c5b84cdb38fef1ae9f107281a90f26ca65e8a969885fff');
     setUserId(urlUserId);
     setStrRoomId(urlRoomId);
   }, []);
