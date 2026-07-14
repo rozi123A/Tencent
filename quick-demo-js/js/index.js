@@ -2,7 +2,15 @@
 // -------document events--------
 
 document.getElementById('sdkAppId').value = getQueryString('sdkAppId') || localStorage.getItem('trtc_sdkAppId') || '';
-document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || window.location.origin.replace(/:\d+$/, ':3001');
+// Try to guess the server URL if on Render. 
+// Render static sites are often at xxx.onrender.com and the server at xxx-server.onrender.com
+let defaultServerUrl = window.location.origin.replace(/:\d+$/, ':3001');
+if (window.location.hostname.includes('onrender.com')) {
+    // If this is tencent-demo-js.onrender.com, try tencent-usersig-server.onrender.com
+    defaultServerUrl = 'https://tencent-usersig-server.onrender.com';
+}
+
+document.getElementById('userSigServerUrl').value = getQueryString('userSigServerUrl') || localStorage.getItem('trtc_userSigServerUrl') || defaultServerUrl;
 document.getElementById('userId').value = getQueryString('userId') || 'user_' + Math.floor(Math.random() * 1000000);
 document.getElementById('strRoomId').value = getQueryString('strRoomId') || 'room_' + Math.floor(Math.random() * 1000);
 const state = { url:window.location.href.split("?")[0] };
