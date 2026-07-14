@@ -5,23 +5,32 @@
  * that holds the secret.
  */
 
-const USER_SIG_SERVER_URL = import.meta.env.VITE_USER_SIG_SERVER_URL || 'http://localhost:3001';
+// Auto-detect server URL: use the provided env var, or fallback to current origin (for unified deployment)
+const USER_SIG_SERVER_URL = import.meta.env.VITE_USER_SIG_SERVER_URL || window.location.origin;
 
 export async function fetchUserSig({
   userId,
 }: {
   userId: string;
 }): Promise<{ sdkAppId: number; userSig: string }> {
-  const resp = await fetch(`${USER_SIG_SERVER_URL.replace(/\/$/, '')}/api/user-sig`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
-  });
+  const targetUrl = `${USER_SIG_SERVER_URL.replace(/\/$/, '')}/api/user-sig`;
+  console.log('Fetching userSig from:', targetUrl);
+  
+  try {
+    const resp = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
 
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.error || `userSig server responded with ${resp.status}`);
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      throw new Error(body.error || `Server error ${resp.status} at ${targetUrl}`);
+    }
+
+    return await resp.json();
+  } catch (err: any) {
+    console.error('fetchUserSig error:', err);
+    throw new Error(`Failed to reach userSig server: ${err.message}`);
   }
-
-  return resp.json();
 }
