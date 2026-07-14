@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import TRTC from 'trtc-sdk-v5';
 import { useTRTC } from '@/hooks/useTRTC';
@@ -9,10 +9,14 @@ import InviteLink from '@/components/InviteLink';
 import LogPanel from '@/components/LogPanel';
 import LocalVideo from '@/components/LocalVideo';
 import RemoteVideos from '@/components/RemoteVideos';
+import { useAppStore } from '@/store';
 import './HomePage.css';
 
 export default function HomePage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
+  const [lobbyDone, setLobbyDone] = useState(false);
+  const { strRoomId, userId } = useAppStore();
+
   const {
     roomStatus,
     camStatus,
@@ -38,12 +42,11 @@ export default function HomePage() {
   } = useTRTC();
 
   useEffect(() => {
-    document.title = t('title');
-  }, [t]);
+    document.title = 'Video Call';
+  }, []);
 
   useEffect(() => {
     TRTC.isSupported().then((checkResult) => {
-      console.log('checkResult', checkResult.result, 'checkDetail', checkResult.detail);
       if (!checkResult.result) {
         const isZh = i18n.language.startsWith('zh');
         alert(isZh
@@ -53,15 +56,37 @@ export default function HomePage() {
     });
   }, []);
 
-  const handleEnterRoom = async () => {
+  const handleJoinFromLobby = async () => {
+    setLobbyDone(true);
     await enterRoom();
   };
 
+  const handleExitRoom = async () => {
+    await exitRoom();
+    setLobbyDone(false);
+  };
+
+  // ── Lobby Screen ──────────────────────────────────────────
+  if (!lobbyDone) {
+    return (
+      <div className="home-page">
+        <Inputs onJoin={handleJoinFromLobby} />
+      </div>
+    );
+  }
+
+  // ── Call Screen ───────────────────────────────────────────
   return (
     <div className="home-page">
       <div className="home-content">
 
-        <Inputs />
+        {/* Room badge */}
+        <div className="room-badge">
+          <span className="room-badge-dot" />
+          غرفة: <strong>{strRoomId}</strong>
+          &nbsp;|&nbsp;
+          أنت: <strong>{userId}</strong>
+        </div>
 
         <DeviceSelect
           onCameraChange={updateLocalVideoDevice}
@@ -74,8 +99,8 @@ export default function HomePage() {
           camStatus={camStatus}
           micStatus={micStatus}
           shareStatus={shareStatus}
-          onEnterRoom={handleEnterRoom}
-          onExitRoom={exitRoom}
+          onEnterRoom={enterRoom}
+          onExitRoom={handleExitRoom}
           onStartLocalAudio={startLocalAudio}
           onStopLocalAudio={stopLocalAudio}
           onStartLocalVideo={() => startLocalVideo('local')}
