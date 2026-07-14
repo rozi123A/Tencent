@@ -255,6 +255,13 @@ export function useTRTC() {
   // Start Screen Share
   const startScreenShare = useCallback(async () => {
     const { userId } = useAppStore.getState();
+
+    // Must be inside a room before sharing screen
+    if (!trtcRef.current) {
+      store.addFailedLog('TRTC is not initialized.');
+      return;
+    }
+
     setShareStatus('starting');
     try {
       await trtcRef.current.startScreenShare();
@@ -264,7 +271,12 @@ export function useTRTC() {
     } catch (error: any) {
       console.error('startScreenShare error', error);
       reportFailedEvent({ name: 'startScreenShare', error, type: 'share' });
-      store.addFailedLog(`${userId ? `[${userId}]` : ''} startScreenShare failed. Reason: ${error.message || error}`);
+      // User cancelled the browser picker → don't show as error
+      if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied') || error.message?.includes('cancelled')) {
+        store.addSuccessLog('Screen share cancelled by user.');
+      } else {
+        store.addFailedLog(`${userId ? `[${userId}]` : ''} startScreenShare failed. Reason: ${error.message || error}`);
+      }
       setShareStatus('idle');
     }
   }, [store]);

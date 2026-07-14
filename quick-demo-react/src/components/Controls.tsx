@@ -96,7 +96,8 @@ export default function Controls({
         <button
           className="ctrl-btn ctrl-btn-primary"
           onClick={onStartScreenShare}
-          disabled={shareStatus === 'starting' || shareStatus === 'started'}
+          disabled={!isEntered || shareStatus === 'starting' || shareStatus === 'started'}
+          title={!isEntered ? 'Enter room first' : ''}
         >
           {shareStatus === 'starting' && <span className="loading-spinner" />}
           {t('operation.startShareScreen')}
@@ -104,7 +105,8 @@ export default function Controls({
         <button
           className="ctrl-btn ctrl-btn-outline"
           onClick={onStopScreenShare}
-          disabled={shareStatus === 'stopping' || shareStatus === 'idle'}
+          disabled={!isEntered || shareStatus === 'stopping' || shareStatus === 'idle'}
+          title={!isEntered ? 'Enter room first' : ''}
         >
           {shareStatus === 'stopping' && <span className="loading-spinner" />}
           {t('operation.stopShareScreen')}
