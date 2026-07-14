@@ -14,6 +14,8 @@ services:
         sync: false # SECRET — set manually in the Render dashboard, never commit it
       - key: ALLOWED_ORIGIN
         value: "*" # tighten to your static site's URL after first deploy
+      - key: NODE_VERSION
+        value: "20.18.1"
 
   # Frontend static site — no secrets here anymore.
   - type: web
@@ -27,3 +29,5 @@ services:
         sync: false # not secret, safe to expose in the client build
       - key: VITE_USER_SIG_SERVER_URL
         sync: false # after the first deploy, set this to the tencent-usersig-server URL Render assigns, then redeploy
+      - key: NODE_VERSION
+        value: "20.18.1"
