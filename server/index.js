@@ -39,12 +39,15 @@ app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json());
 
 // Serve static files from the quick-demo-react/dist directory (React build)
-app.use(express.static(path.join(__dirname, '../quick-demo-react/dist')));
+const distPath = path.resolve(__dirname, '..', 'quick-demo-react', 'dist');
+console.log(`Serving static files from: ${distPath}`);
+app.use(express.static(distPath));
 
 // Fallback to index.html for React Router
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(__dirname, '../quick-demo-react/dist/index.html'));
+  const indexPath = path.join(distPath, 'index.html');
+  res.sendFile(indexPath);
 });
 
 function isValidUserId(userId) {
