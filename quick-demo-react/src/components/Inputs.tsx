@@ -1,47 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '@/store';
 import { generateRandomUserId, generateRandomRoomId } from '@/utils/utils';
 import './Inputs.css';
 
 interface InputsProps {
-  onJoin: () => void;
+  onJoin: () => Promise<void>;
 }
 
 export default function Inputs({ onJoin }: InputsProps) {
   const { setUserId, setStrRoomId, setSdkAppId, setSdkSecretKey } = useAppStore();
-  const [localName, setLocalName] = useState('');
-  const [localRoom, setLocalRoom] = useState('');
+
+  const [name, setName] = useState(() => generateRandomUserId());
+  const [room, setRoom] = useState(() => generateRandomRoomId());
   const [joining, setJoining] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Set hidden credentials from env vars
-    setSdkAppId(import.meta.env.VITE_SDK_APP_ID || '');
-    setSdkSecretKey(import.meta.env.VITE_SDK_SECRET_KEY || '');
-
-    // Generate random defaults
-    const name = generateRandomUserId();
-    const room = generateRandomRoomId();
-    setLocalName(name);
-    setLocalRoom(room);
-    setUserId(name);
-    setStrRoomId(room);
-  }, []);
-
-  const handleNewRoom = () => {
-    const room = generateRandomRoomId();
-    setLocalRoom(room);
-    setStrRoomId(room);
-  };
+  const handleNewRoom = () => setRoom(generateRandomRoomId());
 
   const handleJoin = async () => {
-    if (!localName.trim() || !localRoom.trim()) return;
-    // Sync latest values to store
-    setUserId(localName.trim());
-    setStrRoomId(localRoom.trim());
+    const trimName = name.trim();
+    const trimRoom = room.trim();
+    if (!trimName || !trimRoom) return;
+
+    setError('');
+
+    // Set ALL values in store synchronously before calling enterRoom
+    const appId = import.meta.env.VITE_SDK_APP_ID || '';
+    const secretKey = import.meta.env.VITE_SDK_SECRET_KEY || '';
+
+    if (!appId || !secretKey) {
+      setError('⚠️ VITE_SDK_APP_ID أو VITE_SDK_SECRET_KEY غير مضبوطة في Render Environment Variables');
+      return;
+    }
+
+    setSdkAppId(appId);
+    setSdkSecretKey(secretKey);
+    setUserId(trimName);
+    setStrRoomId(trimRoom);
+
     setJoining(true);
     try {
       await onJoin();
-    } finally {
+    } catch (e: any) {
+      setError('فشل الاتصال: ' + (e?.message || 'خطأ غير معروف'));
       setJoining(false);
     }
   };
@@ -58,11 +59,8 @@ export default function Inputs({ onJoin }: InputsProps) {
           className="lobby-input"
           type="text"
           placeholder="أدخل اسمك..."
-          value={localName}
-          onChange={(e) => {
-            setLocalName(e.target.value);
-            setUserId(e.target.value);
-          }}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           maxLength={30}
           disabled={joining}
         />
@@ -75,28 +73,27 @@ export default function Inputs({ onJoin }: InputsProps) {
             className="lobby-input"
             type="text"
             placeholder="أدخل رقم الغرفة..."
-            value={localRoom}
-            onChange={(e) => {
-              setLocalRoom(e.target.value);
-              setStrRoomId(e.target.value);
-            }}
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
             maxLength={20}
             disabled={joining}
           />
           <button
             className="lobby-btn-new"
             onClick={handleNewRoom}
-            title="غرفة جديدة"
+            title="توليد غرفة جديدة"
             disabled={joining}
           >🔄</button>
         </div>
         <p className="lobby-hint">شارك رقم الغرفة مع أصدقائك ليدخلوا معك</p>
       </div>
 
+      {error && <p className="lobby-error">{error}</p>}
+
       <button
         className="lobby-btn-join"
         onClick={handleJoin}
-        disabled={joining || !localName.trim() || !localRoom.trim()}
+        disabled={joining || !name.trim() || !room.trim()}
       >
         {joining ? '⏳ جاري الاتصال...' : '🚀 انضم للغرفة'}
       </button>
