@@ -16,14 +16,8 @@ export default function NavBar() {
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleLogoTap = () => {
-    tapCountRef.current += 1;
-    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-    if (tapCountRef.current >= SECRET_TAPS) {
-      tapCountRef.current = 0;
-      navigate('/admin');
-      return;
-    }
-    tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, SECRET_WINDOW_MS);
+    // Hidden entry removed for security. Access /admin manually if needed.
+    console.log('Logo tapped');
   };
 
   const toggleLanguage = async () => {

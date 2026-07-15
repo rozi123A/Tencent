@@ -101,32 +101,42 @@ export function useTRTC() {
       console.log('REMOTE_VIDEO_AVAILABLE', userId, streamType);
       const elementId = `${userId}_${streamType}`;
       const s = useAppStore.getState();
+      
+      // Force UI update
       s.addRemoteUser({ userId, streamType, elementId });
       
       // Auto-subscribe to audio as well
       if (streamType === TRTC.TYPE.STREAM_TYPE_MAIN) {
         trtc.startRemoteAudio({ userId })
-          .then(() => console.log('Started remote audio for', userId))
-          .catch((e: any) => console.error('Failed to start remote audio', e));
+          .then(() => console.log('Auto-subscribed to audio for', userId))
+          .catch((e: any) => console.error('Failed to auto-subscribe audio', e));
       }
       
-      // Ensure the video starts playing as soon as the element is in the DOM
+      // Robust retry logic for video rendering
+      let retries = 0;
       const tryStartVideo = () => {
         const view = document.getElementById(elementId);
         if (view) {
           trtc.startRemoteVideo({ userId, streamType, view: elementId })
             .then(() => {
-              console.log('Started remote video for', userId);
-              // Play a sound when video is actually received
+              console.log('Successfully started remote video for', userId);
               playBeep();
             })
-            .catch((e: any) => console.error('Failed to start remote video', e));
+            .catch((e: any) => {
+              console.error('Failed to start remote video, retrying...', e);
+              if (retries < 10) {
+                retries++;
+                setTimeout(tryStartVideo, 500);
+              }
+            });
         } else {
-          // Retry a few times if the element isn't ready yet
-          setTimeout(tryStartVideo, 100);
+          if (retries < 20) {
+            retries++;
+            setTimeout(tryStartVideo, 200);
+          }
         }
       };
-      setTimeout(tryStartVideo, 100);
+      tryStartVideo();
     });
 
     trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, async ({ userId, streamType }: any) => {
@@ -177,6 +187,12 @@ export function useTRTC() {
         console.log('CHAT_CMD received from', userId);
         const obj = decodeMsg(data);
         if (!obj?.text) return;
+        
+        const s = useAppStore.getState();
+        // Avoid duplicate messages
+        const exists = s.chatMessages.some(m => m.text === obj.text && Math.abs(m.ts - (obj.ts || Date.now())) < 1000);
+        if (exists) return;
+
         const msg: ChatMessage = {
           id: `${userId}_${Date.now()}_${Math.random()}`,
           userId,
@@ -184,7 +200,7 @@ export function useTRTC() {
           ts: obj.ts || Date.now(),
           self: false,
         };
-        useAppStore.getState().addChatMessage(msg);
+        s.addChatMessage(msg);
       }
       if (cmdId === LOCK_CMD) {
         const obj = decodeMsg(data);
