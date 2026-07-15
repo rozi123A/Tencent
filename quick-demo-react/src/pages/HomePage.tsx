@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import TRTC from 'trtc-sdk-v5';
 import { useTRTC } from '@/hooks/useTRTC';
-import Inputs from '@/components/Inputs';
+import QuickMatch from '@/components/QuickMatch';
 import DeviceSelect from '@/components/DeviceSelect';
 import InviteLink from '@/components/InviteLink';
 import LogPanel from '@/components/LogPanel';
@@ -67,7 +67,7 @@ export default function HomePage() {
       <div className="home-page lobby-page">
         <div className="lobby-glow lobby-glow-1" />
         <div className="lobby-glow lobby-glow-2" />
-        <Inputs onJoin={enterRoom} />
+        <QuickMatch onJoin={() => enterRoom()} />
       </div>
     );
   }
