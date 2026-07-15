@@ -73,9 +73,15 @@
   box-shadow: 0 10px 24px rgba(108, 92, 231, 0.32);
 }
 
-.quick-match-btn-search:hover {
+.quick-match-btn-search:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 14px 30px rgba(108, 92, 231, 0.42);
+}
+
+.quick-match-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .quick-match-btn-cancel {

@@ -1,8 +1,30 @@
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import './NavBar.css';
+
+// Secret admin entry point: no visible link anywhere in the UI, so regular
+// users never see it. Tapping/clicking the logo 5 times within 2 seconds
+// opens the admin dashboard.
+const SECRET_TAPS = 5;
+const SECRET_WINDOW_MS = 2000;
 
 export default function NavBar() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogoTap = () => {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= SECRET_TAPS) {
+      tapCountRef.current = 0;
+      navigate('/admin');
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, SECRET_WINDOW_MS);
+  };
 
   const toggleLanguage = async () => {
     const nextLang = i18n.language.startsWith('zh') ? 'en' : 'zh-cn';
@@ -21,6 +43,7 @@ export default function NavBar() {
         src="https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio-headlogo.png"
         alt="TRTC Logo"
         className="navbar-logo"
+        onClick={handleLogoTap}
       />
       <div className="navbar-actions">
         <a href={docUrl} target="_blank" rel="noopener noreferrer" className="navbar-doc-link">

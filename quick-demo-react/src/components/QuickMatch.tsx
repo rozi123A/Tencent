@@ -47,7 +47,11 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
   };
 
   const handleSearch = async () => {
-    const trimName = name.trim() || `زائر${Math.floor(Math.random() * 10000)}`;
+    const trimName = name.trim();
+    if (!trimName) {
+      setError('يرجى إدخال اسم مستعار أولاً');
+      return;
+    }
     try { localStorage.setItem(NAME_KEY, trimName); } catch {}
 
     const myUserId = generateRandomUserId();
@@ -94,16 +98,17 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
     <div className="quick-match-card">
       <div className="quick-match-icon">🎲</div>
       <h2 className="quick-match-title">تحدث مع شخص عشوائي الآن</h2>
-      <p className="quick-match-subtitle">بدون رقم غرفة وبدون رمز حماية — اضغط بحث وسنصلك بأول شخص متاح</p>
+      <p className="quick-match-subtitle">بدون رقم غرفة وبدون رمز حماية — أدخل اسمًا مستعارًا وسنصلك بأول شخص متاح</p>
 
       {!searching && (
         <input
           className="quick-match-input"
           type="text"
-          placeholder="اسمك (اختياري)"
+          placeholder="الاسم المستعار..."
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={30}
+          autoFocus
         />
       )}
 
@@ -120,7 +125,11 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
           </button>
         </>
       ) : (
-        <button className="quick-match-btn quick-match-btn-search" onClick={handleSearch}>
+        <button
+          className="quick-match-btn quick-match-btn-search"
+          onClick={handleSearch}
+          disabled={!name.trim()}
+        >
           🔎 بحث عن شخص للتحدث
         </button>
       )}
