@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store';
 import { matchApi } from '@/utils/matchApi';
-import { generateRandomUserId } from '@/utils/utils';
+import { generateRandomUserId, generateRandomRoomId } from '@/utils/utils';
 import './QuickMatch.css';
 
 const NAME_KEY = 'vc_saved_name';
 const POLL_MS = 2000;
+// Random matching only works if another real person happens to be
+// searching at the same moment -- with few concurrent users that can take
+// a while. Rather than let the spinner run forever (which reads as "broken"
+// and scares people off), we surface reassurance/escape hatches over time.
+const REASSURE_AFTER_MS = 10000;
+const OFFER_INVITE_AFTER_MS = 25000;
 
 interface QuickMatchProps {
   onJoin: () => Promise<void>;
@@ -23,13 +29,19 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
   });
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const [elapsedMs, setElapsedMs] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const myUserIdRef = useRef<string>('');
 
   const stopPolling = () => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
+    }
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
     }
   };
 
@@ -63,6 +75,11 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
     setDisplayName(trimName);
     setError('');
     setSearching(true);
+    setElapsedMs(0);
+    const startedAt = Date.now();
+    tickRef.current = setInterval(() => {
+      setElapsedMs(Date.now() - startedAt);
+    }, 1000);
 
     try {
       const result = await matchApi.join(myUserId);
@@ -98,6 +115,23 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
     }
   };
 
+  // Escape hatch for when no one else is searching: stop waiting on a
+  // stranger and go straight into a private room the user can invite a
+  // specific friend to (via the invite link shown once inside the call).
+  const handleCreateOwnRoom = async () => {
+    stopPolling();
+    if (myUserIdRef.current) {
+      try { await matchApi.cancel(myUserIdRef.current); } catch {}
+    }
+    setStrRoomId(generateRandomRoomId());
+    setSearching(false);
+    try {
+      await onJoin();
+    } catch (e: any) {
+      setError('فشل الاتصال: ' + (e?.message || 'خطأ غير معروف'));
+    }
+  };
+
   return (
     <div className="quick-match-card">
       <div className="quick-match-icon">🎲</div>
@@ -124,6 +158,19 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
             <span className="quick-match-spinner" />
             جارٍ البحث عن شخص متاح...
           </div>
+
+          {elapsedMs >= REASSURE_AFTER_MS && (
+            <p className="quick-match-hint">
+              لا يوجد خلل — البحث مستمر، لكن قد لا يوجد أحد آخر يبحث في نفس اللحظة.
+            </p>
+          )}
+
+          {elapsedMs >= OFFER_INVITE_AFTER_MS && (
+            <button className="quick-match-btn quick-match-btn-search" onClick={handleCreateOwnRoom}>
+              ↗ أنشئ غرفة الآن وادعُ صديقًا برابط مباشر
+            </button>
+          )}
+
           <button className="quick-match-btn quick-match-btn-cancel" onClick={handleCancel}>
             إلغاء البحث
           </button>
