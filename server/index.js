@@ -220,6 +220,79 @@ app.get('/api/admin/stats', requireAdmin, (_req, res) => {
   });
 });
 
+// --- Random matchmaking ("talk to a random person, no room number / PIN") --
+//
+// Flow: a client posts /api/match/join with its userId. If someone else is
+// already waiting, the two are paired immediately into a freshly generated
+// room and both get the roomId back (the waiting one via /api/match/status
+// polling, since their original request already returned "waiting"). If no
+// one is waiting, the client is queued and must poll /api/match/status until
+// paired or it cancels. This is plain HTTP polling (no websocket layer in
+// this server), fine for a small demo's traffic.
+const matchQueue = []; // { userId, joinedAt }
+const matchResults = new Map(); // userId -> { roomId, partnerId, ts }
+const MATCH_QUEUE_TTL_MS = 5 * 60 * 1000;
+const MATCH_RESULT_TTL_MS = 60 * 1000;
+
+function generateMatchRoomId() {
+  return 'match_' + Math.random().toString(36).slice(2, 10);
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (let i = matchQueue.length - 1; i >= 0; i--) {
+    if (now - matchQueue[i].joinedAt > MATCH_QUEUE_TTL_MS) matchQueue.splice(i, 1);
+  }
+  for (const [uid, r] of matchResults) {
+    if (now - r.ts > MATCH_RESULT_TTL_MS) matchResults.delete(uid);
+  }
+}, 30 * 1000).unref?.();
+
+app.post('/api/match/join', (req, res) => {
+  const { userId } = req.body || {};
+  if (!isValidUserId(userId)) {
+    return res.status(400).json({ error: 'A valid userId is required.' });
+  }
+
+  // Clear any stale queue entry for this same userId (e.g. re-clicked).
+  for (let i = matchQueue.length - 1; i >= 0; i--) {
+    if (matchQueue[i].userId === userId) matchQueue.splice(i, 1);
+  }
+  matchResults.delete(userId);
+
+  const partnerIndex = matchQueue.findIndex((entry) => entry.userId !== userId);
+  if (partnerIndex !== -1) {
+    const partner = matchQueue.splice(partnerIndex, 1)[0];
+    const roomId = generateMatchRoomId();
+    matchResults.set(partner.userId, { roomId, partnerId: userId, ts: Date.now() });
+    console.log(`Matched ${userId} <-> ${partner.userId} in room ${roomId}`);
+    return res.json({ matched: true, roomId, partnerId: partner.userId });
+  }
+
+  matchQueue.push({ userId, joinedAt: Date.now() });
+  res.json({ matched: false, waiting: true });
+});
+
+app.get('/api/match/status/:userId', (req, res) => {
+  const { userId } = req.params;
+  const result = matchResults.get(userId);
+  if (result) {
+    matchResults.delete(userId);
+    return res.json({ matched: true, roomId: result.roomId, partnerId: result.partnerId });
+  }
+  const stillWaiting = matchQueue.some((entry) => entry.userId === userId);
+  res.json({ matched: false, waiting: stillWaiting });
+});
+
+app.post('/api/match/cancel', (req, res) => {
+  const { userId } = req.body || {};
+  for (let i = matchQueue.length - 1; i >= 0; i--) {
+    if (matchQueue[i].userId === userId) matchQueue.splice(i, 1);
+  }
+  matchResults.delete(userId);
+  res.json({ ok: true });
+});
+
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
