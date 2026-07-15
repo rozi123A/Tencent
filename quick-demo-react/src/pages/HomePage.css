@@ -167,13 +167,14 @@ body {
   flex-wrap: wrap;
 }
 
-/* ── Media section ───────────────────────────────────────── */
-.home-media-section {
+/* ── Call stage: partner's video on top, mine below ─────────
+   Same medium size for both, so it reads as "the two of us",
+   not a main feed with a small self-preview. */
+.call-stage {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: space-between;
   margin-top: 12px;
 }
 
@@ -188,6 +189,5 @@ body {
 }
 
 @media (max-width: 540px) {
-  .home-media-section { flex-direction: column; }
   .side-panels { flex-direction: column; }
 }

@@ -4,7 +4,6 @@ import { useTRTC } from '@/hooks/useTRTC';
 import QuickMatch from '@/components/QuickMatch';
 import DeviceSelect from '@/components/DeviceSelect';
 import InviteLink from '@/components/InviteLink';
-import LogPanel from '@/components/LogPanel';
 import LocalVideo from '@/components/LocalVideo';
 import RemoteVideos from '@/components/RemoteVideos';
 import CallControls from '@/components/CallControls';
@@ -151,9 +150,12 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="home-media-section">
-          <LogPanel />
+        {/* Call stage: partner's video on top, mine below -- both the same
+            medium size so neither feels like the "main" or "small" one. */}
+        <div className="call-stage">
+          <RemoteVideos />
           <LocalVideo
+            name={displayName || userId}
             audioMuted={audioMuted}
             videoMuted={videoMuted}
             showControls={camStatus === 'started'}
@@ -161,8 +163,6 @@ export default function HomePage() {
             onToggleVideo={toggleVideoMute}
           />
         </div>
-
-        <RemoteVideos />
       </div>
     </div>
   );

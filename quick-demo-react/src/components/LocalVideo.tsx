@@ -5,6 +5,7 @@ import micMuteSvg from '@/assets/mic-mute.svg';
 import './LocalVideo.css';
 
 interface LocalVideoProps {
+  name?: string;
   audioMuted: boolean;
   videoMuted: boolean;
   showControls: boolean;
@@ -12,10 +13,11 @@ interface LocalVideoProps {
   onToggleVideo: () => void;
 }
 
-export default function LocalVideo({ audioMuted, videoMuted, showControls, onToggleAudio, onToggleVideo }: LocalVideoProps) {
+export default function LocalVideo({ name, audioMuted, videoMuted, showControls, onToggleAudio, onToggleVideo }: LocalVideoProps) {
   return (
     <div className="local-video-container">
       <div className="local-video" id="local" />
+      {name && <div className="local-video-label">{name}</div>}
       {showControls && (
         <div className="local-controls">
           <button className="mute-btn" onClick={onToggleVideo} title={videoMuted ? 'Unmute Video' : 'Mute Video'}>
