@@ -323,6 +323,7 @@ export function useTRTC() {
       store.clearChatMessages();
       store.clearDisplayNames();
       store.setRoomLocked(false);
+      store.setIsRandomMatch(false);
       unbindEvents();
       setRoomStatus('idle');
       setShareLink('');

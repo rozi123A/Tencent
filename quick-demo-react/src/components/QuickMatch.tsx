@@ -23,7 +23,7 @@ interface QuickMatchProps {
  * dropped straight into a freshly generated room together.
  */
 export default function QuickMatch({ onJoin }: QuickMatchProps) {
-  const { setUserId, setDisplayName, setStrRoomId } = useAppStore();
+  const { setUserId, setDisplayName, setStrRoomId, setIsRandomMatch } = useAppStore();
   const [name, setName] = useState<string>(() => {
     try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
   });
@@ -73,6 +73,7 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
     // contain spaces, etc. -- is tracked separately as displayName.
     setUserId(myUserId);
     setDisplayName(trimName);
+    setIsRandomMatch(true);
     setError('');
     setSearching(true);
     setElapsedMs(0);
@@ -124,6 +125,7 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
       try { await matchApi.cancel(myUserIdRef.current); } catch {}
     }
     setStrRoomId(generateRandomRoomId());
+    setIsRandomMatch(false);
     setSearching(false);
     try {
       await onJoin();

@@ -16,7 +16,7 @@ import { useAppStore } from '@/store';
 import './HomePage.css';
 
 export default function HomePage() {
-  const { strRoomId, userId, displayName, theme, setTheme, roomLocked } = useAppStore();
+  const { strRoomId, userId, displayName, theme, setTheme, roomLocked, isRandomMatch } = useAppStore();
 
   const {
     roomStatus,
@@ -83,20 +83,28 @@ export default function HomePage() {
         <div className="room-badge">
           <span className="room-badge-dot" />
           <span>
-            غرفة: <strong>{strRoomId}</strong>
-            &nbsp;|&nbsp;
+            {!isRandomMatch && (
+              <>
+                غرفة: <strong>{strRoomId}</strong>
+                &nbsp;|&nbsp;
+              </>
+            )}
             أنت: <strong>{displayName || userId}</strong>
           </span>
 
           {isEntered && <CallTimer running={isEntered} />}
           {isEntered && <NetworkQuality />}
 
-          <button className="badge-icon-btn" onClick={copyRoomCode} title="نسخ رقم الغرفة">📋</button>
-          <button
-            className={`badge-icon-btn ${roomLocked ? 'lock-active' : ''}`}
-            onClick={toggleRoomLock}
-            title={roomLocked ? 'فتح الغرفة' : 'قفل الغرفة'}
-          >{roomLocked ? '🔒' : '🔓'}</button>
+          {!isRandomMatch && (
+            <>
+              <button className="badge-icon-btn" onClick={copyRoomCode} title="نسخ رقم الغرفة">📋</button>
+              <button
+                className={`badge-icon-btn ${roomLocked ? 'lock-active' : ''}`}
+                onClick={toggleRoomLock}
+                title={roomLocked ? 'فتح الغرفة' : 'قفل الغرفة'}
+              >{roomLocked ? '🔒' : '🔓'}</button>
+            </>
+          )}
           <button
             className="badge-icon-btn theme-btn"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -127,7 +135,7 @@ export default function HomePage() {
         />
 
         <InviteLink
-          visible={isEntered}
+          visible={isEntered && !isRandomMatch}
           link={shareLink}
           onCopied={refreshLink}
         />

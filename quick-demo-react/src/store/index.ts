@@ -31,6 +31,11 @@ interface AppState {
   // as their PRESENCE custom messages arrive. UI should read through this
   // (falling back to the raw userId) instead of showing userId directly.
   displayNames: Record<string, string>;
+  // True when the current call came from "talk to a random person now"
+  // matching. That flow is meant to feel room-less to the user (just two
+  // people who suddenly see/hear each other), so the UI hides room-number
+  // badges, copy/lock controls, and invite links while this is true.
+  isRandomMatch: boolean;
   theme: 'dark' | 'light';
   networkQuality: { uplink: number; downlink: number };
   roomLocked: boolean;
@@ -44,6 +49,7 @@ interface AppState {
   setDisplayNameFor: (userId: string, name: string) => void;
   clearDisplayNames: () => void;
   setStrRoomId: (val: string) => void;
+  setIsRandomMatch: (val: boolean) => void;
   setCameras: (devices: DeviceItem[]) => void;
   setMicrophones: (devices: DeviceItem[]) => void;
   setSelectedCameraId: (id: string) => void;
@@ -90,6 +96,7 @@ export const useAppStore = create<AppState>((set) => ({
   participants: [],
   displayName: '',
   displayNames: {},
+  isRandomMatch: false,
   theme: savedTheme,
   networkQuality: { uplink: 0, downlink: 0 },
   roomLocked: false,
@@ -105,6 +112,7 @@ export const useAppStore = create<AppState>((set) => ({
   )),
   clearDisplayNames: () => set({ displayNames: {} }),
   setStrRoomId: (val) => set({ strRoomId: val }),
+  setIsRandomMatch: (val) => set({ isRandomMatch: val }),
   setCameras: (devices) => set({ cameras: devices }),
   setMicrophones: (devices) => set({ microphones: devices }),
   setSelectedCameraId: (id) => set({ selectedCameraId: id }),
