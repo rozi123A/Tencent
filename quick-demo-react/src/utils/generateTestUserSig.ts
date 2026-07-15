@@ -10,8 +10,15 @@ const USER_SIG_SERVER_URL = import.meta.env.VITE_USER_SIG_SERVER_URL || window.l
 
 export async function fetchUserSig({
   userId,
+  strRoomId,
+  pin,
 }: {
   userId: string;
+  // Optional room PIN check (see /server). Only the main "join by room ID"
+  // flow sends these -- invite links intentionally skip the PIN, since a
+  // signed invite link is already a stronger proof of access than a PIN.
+  strRoomId?: string;
+  pin?: string;
 }): Promise<{ sdkAppId: number; userSig: string }> {
   const targetUrl = `${USER_SIG_SERVER_URL.replace(/\/$/, '')}/api/user-sig`;
   console.log('Fetching userSig from:', targetUrl);
@@ -20,7 +27,7 @@ export async function fetchUserSig({
     const resp = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, strRoomId, pin }),
     });
 
     if (!resp.ok) {

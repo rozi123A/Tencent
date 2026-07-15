@@ -11,6 +11,11 @@ const CHAT_CMD = 1;
 const LOCK_CMD = 2;
 const TYPING_CMD = 3;
 
+// Rooms above this size get kicked back out right after joining -- TRTC has
+// no way to reject a join before it happens, so this is enforced reactively
+// once the current member count is known (see enterRoom).
+const MAX_PARTICIPANTS = 10;
+
 function playBeep() {
   try {
     const ctx = new AudioContext();
@@ -35,6 +40,10 @@ function decodeMsg(data: Uint8Array): any {
 
 export function useTRTC() {
   const trtcRef = useRef<any>(null);
+  // Holds the latest exitRoom() so the over-capacity check inside enterRoom
+  // can call it without a circular useCallback dependency (exitRoom is
+  // declared further down, after state it depends on).
+  const exitRoomRef = useRef<() => Promise<void>>();
 
   const [roomStatus, setRoomStatus] = useState<RoomStatus>('idle');
   const [camStatus, setCamStatus] = useState<MediaStatus>('idle');
@@ -175,13 +184,7 @@ export function useTRTC() {
 
   // Enter Room
   const enterRoom = useCallback(async (pin?: string) => {
-    const { userId, strRoomId, participants } = useAppStore.getState();
-    
-    // 1. Max participants check (e.g., 10)
-    if (participants.length >= 10) {
-      store.addToast('❌ الغرفة ممتلئة (الحد الأقصى 10 مستخدمين)', 'error');
-      return;
-    }
+    const { userId, strRoomId } = useAppStore.getState();
 
     if (!userId || !strRoomId) {
       store.addFailedLog('بيانات الاتصال غير مكتملة (الاسم أو رقم الغرفة)');
@@ -190,7 +193,7 @@ export function useTRTC() {
     setRoomStatus('entering');
     bindEvents();
     try {
-      const { sdkAppId: signedSdkAppId, userSig } = await fetchUserSig({ userId });
+      const { sdkAppId: signedSdkAppId, userSig } = await fetchUserSig({ userId, strRoomId, pin });
       store.setSdkAppId(String(signedSdkAppId));
       await trtcRef.current.enterRoom({ strRoomId, sdkAppId: signedSdkAppId, userId, userSig });
       reportSuccessEvent('enterRoom', signedSdkAppId);
@@ -198,6 +201,21 @@ export function useTRTC() {
       store.addParticipant(userId);
       setRoomStatus('entered');
       setShareLink(await createShareLink(signedSdkAppId, strRoomId));
+
+      // TRTC has no way to check room occupancy before joining, so the max
+      // participants cap can only be enforced reactively: give the initial
+      // burst of REMOTE_USER_ENTER events (for anyone already in the room) a
+      // moment to arrive, then check the real count and leave if it's over
+      // the cap -- checking participants.length before this point is always
+      // 0/1 and would never catch a genuinely full room.
+      setTimeout(async () => {
+        const count = useAppStore.getState().participants.length;
+        if (count > MAX_PARTICIPANTS && useAppStore.getState().userId === userId) {
+          store.addToast(`❌ الغرفة ممتلئة (الحد الأقصى ${MAX_PARTICIPANTS} مستخدمين)`, 'error');
+          store.addFailedLog(`الغرفة ممتلئة (${count}/${MAX_PARTICIPANTS}) — تم إخراجك تلقائيًا`);
+          await exitRoomRef.current?.();
+        }
+      }, 1500);
     } catch (error: any) {
       console.error('enterRoom error', error);
       reportFailedEvent({ name: 'enterRoom', error, roomId: strRoomId });
@@ -245,6 +263,10 @@ export function useTRTC() {
       setRoomStatus('entered');
     }
   }, [store, micStatus, camStatus, shareStatus, unbindEvents]);
+
+  useEffect(() => {
+    exitRoomRef.current = exitRoom;
+  }, [exitRoom]);
 
   // Start Local Audio
   const startLocalAudio = useCallback(async () => {

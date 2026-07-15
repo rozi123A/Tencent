@@ -60,13 +60,43 @@ function isValidUserId(userId) {
   return typeof userId === 'string' && userId.length > 0 && userId.length <= 64 && /^[\w-]+$/.test(userId);
 }
 
+// In-memory optional room PIN protection. Not persisted (acceptable for a
+// demo: a Render restart wipes it anyway), and only enforced for the main
+// "join by room ID" flow -- fetchUserSig() on the client skips it for invite
+// links, since a signed invite link is already a stronger proof of access.
+// The first person to submit a non-empty pin for a given room "sets" it;
+// everyone after that must send the same pin.
+const roomPins = new Map(); // strRoomId -> { pin, updatedAt }
+const ROOM_PIN_TTL_MS = 24 * 60 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, info] of roomPins) {
+    if (now - info.updatedAt > ROOM_PIN_TTL_MS) roomPins.delete(roomId);
+  }
+}, 60 * 60 * 1000).unref?.();
+
 app.post('/api/user-sig', (req, res) => {
   console.log(`Received user-sig request for userId: ${req.body?.userId}`);
-  const { userId } = req.body || {};
+  const { userId, strRoomId, pin } = req.body || {};
 
   if (!isValidUserId(userId)) {
     console.log(`Invalid userId: ${userId}`);
     return res.status(400).json({ error: 'A valid userId is required.' });
+  }
+
+  if (typeof strRoomId === 'string' && strRoomId) {
+    const providedPin = typeof pin === 'string' ? pin.trim() : '';
+    const existing = roomPins.get(strRoomId);
+    if (existing) {
+      if (providedPin !== existing.pin) {
+        console.log(`PIN mismatch for room ${strRoomId}`);
+        return res.status(403).json({ error: 'رمز الغرفة (PIN) غير صحيح.' });
+      }
+      existing.updatedAt = Date.now();
+    } else if (providedPin) {
+      roomPins.set(strRoomId, { pin: providedPin, updatedAt: Date.now() });
+      console.log(`Room ${strRoomId} is now PIN-protected`);
+    }
   }
 
   try {
