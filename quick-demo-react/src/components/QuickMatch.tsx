@@ -17,7 +17,7 @@ interface QuickMatchProps {
  * dropped straight into a freshly generated room together.
  */
 export default function QuickMatch({ onJoin }: QuickMatchProps) {
-  const { setUserId, setStrRoomId } = useAppStore();
+  const { setUserId, setDisplayName, setStrRoomId } = useAppStore();
   const [name, setName] = useState<string>(() => {
     try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; }
   });
@@ -56,7 +56,11 @@ export default function QuickMatch({ onJoin }: QuickMatchProps) {
 
     const myUserId = generateRandomUserId();
     myUserIdRef.current = myUserId;
-    setUserId(trimName);
+    // userId must stay ASCII-safe (it's validated by a strict regex on the
+    // signing server); the user's actual nickname -- which may be Arabic,
+    // contain spaces, etc. -- is tracked separately as displayName.
+    setUserId(myUserId);
+    setDisplayName(trimName);
     setError('');
     setSearching(true);
 

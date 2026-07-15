@@ -9,6 +9,7 @@ interface ChatPanelProps {
 export default function ChatPanel({ onSend, onTyping }: ChatPanelProps & { onTyping?: (typing: boolean) => void }) {
   const chatMessages = useAppStore((s) => s.chatMessages);
   const typingUsers = useAppStore((s) => s.typingUsers);
+  const displayNames = useAppStore((s) => s.displayNames);
   const [input, setInput] = useState('');
   const typingTimeoutRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -64,14 +65,14 @@ export default function ChatPanel({ onSend, onTyping }: ChatPanelProps & { onTyp
         )}
         {chatMessages.map((msg) => (
           <div key={msg.id} className={`chat-bubble ${msg.self ? 'self' : 'other'}`}>
-            {!msg.self && <span className="chat-author">{msg.userId}</span>}
+            {!msg.self && <span className="chat-author">{displayNames[msg.userId] || msg.userId}</span>}
             <span className="chat-text">{msg.text}</span>
             <span className="chat-time">{formatTime(msg.ts)}</span>
           </div>
         ))}
         {typingUsers.length > 0 && (
           <div className="chat-typing-indicator">
-            {typingUsers.join(', ')} {typingUsers.length > 1 ? 'يكتبون الآن...' : 'يكتب الآن...'}
+            {typingUsers.map((u) => displayNames[u] || u).join(', ')} {typingUsers.length > 1 ? 'يكتبون الآن...' : 'يكتب الآن...'}
           </div>
         )}
         <div ref={bottomRef} />

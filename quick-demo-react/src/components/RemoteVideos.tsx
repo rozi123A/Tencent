@@ -7,6 +7,7 @@ interface RemoteVideosProps {
 
 export default function RemoteVideos({ useInviteStore = false }: RemoteVideosProps) {
   const remoteUsers = useAppStore((state) => useInviteStore ? state.inviteRemoteUsers : state.remoteUsers);
+  const displayNames = useAppStore((state) => state.displayNames);
 
   if (remoteUsers.length === 0) return null;
 
@@ -15,7 +16,7 @@ export default function RemoteVideos({ useInviteStore = false }: RemoteVideosPro
       {remoteUsers.map((user) => (
         <div key={user.elementId} className="remote-video-wrapper">
           <div id={user.elementId} className="remote-video" />
-          <div className="remote-video-label">{user.userId}</div>
+          <div className="remote-video-label">{displayNames[user.userId] || user.userId}</div>
         </div>
       ))}
     </div>

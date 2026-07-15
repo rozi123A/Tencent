@@ -16,7 +16,7 @@ import { useAppStore } from '@/store';
 import './HomePage.css';
 
 export default function HomePage() {
-  const { strRoomId, userId, theme, setTheme, roomLocked } = useAppStore();
+  const { strRoomId, userId, displayName, theme, setTheme, roomLocked } = useAppStore();
 
   const {
     roomStatus,
@@ -85,7 +85,7 @@ export default function HomePage() {
           <span>
             غرفة: <strong>{strRoomId}</strong>
             &nbsp;|&nbsp;
-            أنت: <strong>{userId}</strong>
+            أنت: <strong>{displayName || userId}</strong>
           </span>
 
           {isEntered && <CallTimer running={isEntered} />}

@@ -11,6 +11,7 @@ export type MediaStatus = 'idle' | 'starting' | 'started' | 'stopping';
 const CHAT_CMD = 1;
 const LOCK_CMD = 2;
 const TYPING_CMD = 3;
+const PRESENCE_CMD = 4;
 
 // Rooms above this size get kicked back out right after joining -- TRTC has
 // no way to reject a join before it happens, so this is enforced reactively
@@ -155,16 +156,23 @@ export function useTRTC() {
       console.log('REMOTE_USER_ENTER', userId);
       const s = useAppStore.getState();
       s.addParticipant(userId);
-      s.addSuccessLog(`🟢 ${userId} دخل الغرفة`);
-      s.addToast(`🟢 ${userId} انضم للمكالمة`);
+      const label = s.displayNames[userId] || userId;
+      s.addSuccessLog(`🟢 ${label} دخل الغرفة`);
+      s.addToast(`🟢 ${label} انضم للمكالمة`);
       playBeep();
+      // The newcomer has no way to know who was already in the room (they
+      // weren't there for our initial join-time broadcast), so re-announce
+      // our own display name whenever someone new enters.
+      const myName = s.displayName || s.userId;
+      trtc.sendCustomMessage({ cmdId: PRESENCE_CMD, data: encodeMsg({ name: myName }) }).catch(() => {});
     });
 
     trtc.on(TRTC.EVENT.REMOTE_USER_EXIT, ({ userId }: any) => {
       const s = useAppStore.getState();
+      const label = s.displayNames[userId] || userId;
       s.removeParticipant(userId);
-      s.addSuccessLog(`🔴 ${userId} غادر الغرفة`);
-      s.addToast(`🔴 ${userId} غادر المكالمة`);
+      s.addSuccessLog(`🔴 ${label} غادر الغرفة`);
+      s.addToast(`🔴 ${label} غادر المكالمة`);
     });
 
     // Network quality
@@ -208,6 +216,12 @@ export function useTRTC() {
           useAppStore.getState().setRoomLocked(obj.locked);
         }
       }
+      if (cmdId === PRESENCE_CMD) {
+        const obj = decodeMsg(data);
+        if (obj && typeof obj.name === 'string' && obj.name) {
+          useAppStore.getState().setDisplayNameFor(userId, obj.name);
+        }
+      }
     });
 
     trtc.on(TRTC.EVENT.SCREEN_SHARE_STOPPED, () => {
@@ -233,7 +247,7 @@ export function useTRTC() {
 
   // Enter Room
   const enterRoom = useCallback(async (pin?: string) => {
-    const { userId, strRoomId } = useAppStore.getState();
+    const { userId, strRoomId, displayName } = useAppStore.getState();
 
     if (!userId || !strRoomId) {
       store.addFailedLog('بيانات الاتصال غير مكتملة (الاسم أو رقم الغرفة)');
@@ -246,8 +260,15 @@ export function useTRTC() {
       store.setSdkAppId(String(signedSdkAppId));
       await trtcRef.current.enterRoom({ strRoomId, sdkAppId: signedSdkAppId, userId, userSig });
       reportSuccessEvent('enterRoom', signedSdkAppId);
-      store.addSuccessLog(`[${userId}] دخل الغرفة`);
+      store.addSuccessLog(`[${displayName || userId}] دخل الغرفة`);
       store.addParticipant(userId);
+      store.setDisplayNameFor(userId, displayName || userId);
+      // Announce our display name immediately in case peers already in the
+      // room are listening (also re-announced reactively on their
+      // REMOTE_USER_ENTER handler once they see us appear).
+      trtcRef.current
+        .sendCustomMessage({ cmdId: PRESENCE_CMD, data: encodeMsg({ name: displayName || userId }) })
+        .catch(() => {});
       setRoomStatus('entered');
       setShareLink(await createShareLink(signedSdkAppId, strRoomId));
 
@@ -300,6 +321,7 @@ export function useTRTC() {
       store.clearRemoteUsers();
       store.clearParticipants();
       store.clearChatMessages();
+      store.clearDisplayNames();
       store.setRoomLocked(false);
       unbindEvents();
       setRoomStatus('idle');

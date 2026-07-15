@@ -23,6 +23,14 @@ interface AppState {
   // New features
   chatMessages: ChatMessage[];
   participants: string[];
+  // Human-entered nickname (can contain Arabic/spaces/etc). This is kept
+  // separate from `userId`, which must stay ASCII-safe because it is sent
+  // to the TRTC signaling server and validated by a strict regex there.
+  displayName: string;
+  // userId -> displayName, populated for ourselves on join and for peers
+  // as their PRESENCE custom messages arrive. UI should read through this
+  // (falling back to the raw userId) instead of showing userId directly.
+  displayNames: Record<string, string>;
   theme: 'dark' | 'light';
   networkQuality: { uplink: number; downlink: number };
   roomLocked: boolean;
@@ -32,6 +40,9 @@ interface AppState {
   // Setters
   setSdkAppId: (val: string) => void;
   setUserId: (val: string) => void;
+  setDisplayName: (val: string) => void;
+  setDisplayNameFor: (userId: string, name: string) => void;
+  clearDisplayNames: () => void;
   setStrRoomId: (val: string) => void;
   setCameras: (devices: DeviceItem[]) => void;
   setMicrophones: (devices: DeviceItem[]) => void;
@@ -77,6 +88,8 @@ export const useAppStore = create<AppState>((set) => ({
   inviteRemoteUsers: [],
   chatMessages: [],
   participants: [],
+  displayName: '',
+  displayNames: {},
   theme: savedTheme,
   networkQuality: { uplink: 0, downlink: 0 },
   roomLocked: false,
@@ -86,6 +99,11 @@ export const useAppStore = create<AppState>((set) => ({
 
   setSdkAppId: (val) => { try { localStorage.setItem('trtc_sdkAppId', val); } catch {} set({ sdkAppId: val }); },
   setUserId: (val) => set({ userId: val }),
+  setDisplayName: (val) => set({ displayName: val }),
+  setDisplayNameFor: (userId, name) => set((s) => (
+    s.displayNames[userId] === name ? s : { displayNames: { ...s.displayNames, [userId]: name } }
+  )),
+  clearDisplayNames: () => set({ displayNames: {} }),
   setStrRoomId: (val) => set({ strRoomId: val }),
   setCameras: (devices) => set({ cameras: devices }),
   setMicrophones: (devices) => set({ microphones: devices }),
