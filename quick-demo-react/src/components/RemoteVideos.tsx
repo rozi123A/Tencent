@@ -13,7 +13,10 @@ export default function RemoteVideos({ useInviteStore = false }: RemoteVideosPro
   return (
     <div className="remote-videos-container">
       {remoteUsers.map((user) => (
-        <div key={user.elementId} id={user.elementId} className="remote-video" />
+        <div key={user.elementId} className="remote-video-wrapper">
+          <div id={user.elementId} className="remote-video" />
+          <div className="remote-video-label">{user.userId}</div>
+        </div>
       ))}
     </div>
   );

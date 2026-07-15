@@ -83,10 +83,24 @@ export function useTRTC() {
     if (!trtc) return;
 
     trtc.on(TRTC.EVENT.REMOTE_VIDEO_AVAILABLE, ({ userId, streamType }: any) => {
+      console.log('REMOTE_VIDEO_AVAILABLE', userId, streamType);
       const elementId = `${userId}_${streamType}`;
       const s = useAppStore.getState();
       s.addRemoteUser({ userId, streamType, elementId });
-      setTimeout(() => { trtc.startRemoteVideo({ userId, streamType, view: elementId }); }, 0);
+      
+      // Ensure the video starts playing as soon as the element is in the DOM
+      const tryStartVideo = () => {
+        const view = document.getElementById(elementId);
+        if (view) {
+          trtc.startRemoteVideo({ userId, streamType, view: elementId })
+            .then(() => console.log('Started remote video for', userId))
+            .catch((e: any) => console.error('Failed to start remote video', e));
+        } else {
+          // Retry a few times if the element isn't ready yet
+          setTimeout(tryStartVideo, 100);
+        }
+      };
+      setTimeout(tryStartVideo, 100);
     });
 
     trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, async ({ userId, streamType }: any) => {
@@ -102,6 +116,7 @@ export function useTRTC() {
 
     // Track participants enter/leave
     trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, ({ userId }: any) => {
+      console.log('REMOTE_USER_ENTER', userId);
       const s = useAppStore.getState();
       s.addParticipant(userId);
       s.addSuccessLog(`🟢 ${userId} دخل الغرفة`);
