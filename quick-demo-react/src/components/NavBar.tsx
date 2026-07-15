@@ -6,8 +6,8 @@ import './NavBar.css';
 // Secret admin entry point: no visible link anywhere in the UI, so regular
 // users never see it. Tapping/clicking the logo 5 times within 2 seconds
 // opens the admin dashboard.
-const SECRET_TAPS = 5;
-const SECRET_WINDOW_MS = 2000;
+const SECRET_TAPS = 10;
+const SECRET_WINDOW_MS = 3000;
 
 export default function NavBar() {
   const { t, i18n } = useTranslation();

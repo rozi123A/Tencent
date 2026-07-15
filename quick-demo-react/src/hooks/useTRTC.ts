@@ -103,12 +103,23 @@ export function useTRTC() {
       const s = useAppStore.getState();
       s.addRemoteUser({ userId, streamType, elementId });
       
+      // Auto-subscribe to audio as well
+      if (streamType === TRTC.TYPE.STREAM_TYPE_MAIN) {
+        trtc.startRemoteAudio({ userId })
+          .then(() => console.log('Started remote audio for', userId))
+          .catch((e: any) => console.error('Failed to start remote audio', e));
+      }
+      
       // Ensure the video starts playing as soon as the element is in the DOM
       const tryStartVideo = () => {
         const view = document.getElementById(elementId);
         if (view) {
           trtc.startRemoteVideo({ userId, streamType, view: elementId })
-            .then(() => console.log('Started remote video for', userId))
+            .then(() => {
+              console.log('Started remote video for', userId);
+              // Play a sound when video is actually received
+              playBeep();
+            })
             .catch((e: any) => console.error('Failed to start remote video', e));
         } else {
           // Retry a few times if the element isn't ready yet
@@ -163,10 +174,11 @@ export function useTRTC() {
         }
       }
       if (cmdId === CHAT_CMD) {
+        console.log('CHAT_CMD received from', userId);
         const obj = decodeMsg(data);
         if (!obj?.text) return;
         const msg: ChatMessage = {
-          id: `${userId}_${Date.now()}`,
+          id: `${userId}_${Date.now()}_${Math.random()}`,
           userId,
           text: obj.text,
           ts: obj.ts || Date.now(),
