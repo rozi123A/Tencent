@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import TRTC from 'trtc-sdk-v5';
 import { useAppStore, ChatMessage } from '@/store';
 import { fetchUserSig } from '@/utils/generateTestUserSig';
+import { getPublicSettings } from '@/utils/adminApi';
 import { reportSuccessEvent, reportFailedEvent } from '@/utils/aegis';
 
 export type RoomStatus = 'idle' | 'entering' | 'entered' | 'exiting';
@@ -13,8 +14,13 @@ const TYPING_CMD = 3;
 
 // Rooms above this size get kicked back out right after joining -- TRTC has
 // no way to reject a join before it happens, so this is enforced reactively
-// once the current member count is known (see enterRoom).
-const MAX_PARTICIPANTS = 10;
+// once the current member count is known (see enterRoom). Fallback value
+// used until /api/settings responds; the admin dashboard can change the
+// real value at runtime without a redeploy.
+let maxParticipants = 10;
+getPublicSettings()
+  .then((s) => { maxParticipants = s.maxParticipants; })
+  .catch(() => {});
 
 function playBeep() {
   try {
@@ -210,9 +216,9 @@ export function useTRTC() {
       // 0/1 and would never catch a genuinely full room.
       setTimeout(async () => {
         const count = useAppStore.getState().participants.length;
-        if (count > MAX_PARTICIPANTS && useAppStore.getState().userId === userId) {
-          store.addToast(`❌ الغرفة ممتلئة (الحد الأقصى ${MAX_PARTICIPANTS} مستخدمين)`, 'error');
-          store.addFailedLog(`الغرفة ممتلئة (${count}/${MAX_PARTICIPANTS}) — تم إخراجك تلقائيًا`);
+        if (count > maxParticipants && useAppStore.getState().userId === userId) {
+          store.addToast(`❌ الغرفة ممتلئة (الحد الأقصى ${maxParticipants} مستخدمين)`, 'error');
+          store.addFailedLog(`الغرفة ممتلئة (${count}/${maxParticipants}) — تم إخراجك تلقائيًا`);
           await exitRoomRef.current?.();
         }
       }, 1500);
